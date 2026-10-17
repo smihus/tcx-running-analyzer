@@ -32,5 +32,5 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          .\Analyze-Tcx.ps1 -Path .\tests\fixtures --Output .\launcher-report.json
+          .\Analyze-Tcx.ps1 -Path .\tests\fixtures -Output .\launcher-report.json
           if (-not (Test-Path .\launcher-report.json)) { throw 'JSON missing' }

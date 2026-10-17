@@ -27,7 +27,7 @@ jobs:
       - name: Run stdlib tests
         run: python -m unittest discover -s tests -v
       - name: Verify installed CLI
-        run: garmin-tcx-running-analyzer --help
+        run: tcx-running-analyzer --help
       - name: Verify PowerShell launcher on Windows
         if: runner.os == 'Windows'
         shell: pwsh

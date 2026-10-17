@@ -1,6 +1,6 @@
 ---
 name: compare-running-history
-description: Compare a persistently rebuilt Garmin running-history.json combining measured TCX metrics with separately confirmed user feelings and treadmill/sensor facts.
+description: Compare a persistently rebuilt running-history.json combining measured TCX metrics with separately confirmed user feelings and treadmill/sensor facts.
 ---
 
 # Compare running history

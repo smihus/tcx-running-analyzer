@@ -11,8 +11,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from helpers import synthetic_tcx
-from garmin_tcx_running_analyzer.metadata_cli import main as metadata_main
-from garmin_tcx_running_analyzer.workflow_cli import main as workflow_main
+from tcx_running_analyzer.metadata_cli import main as metadata_main
+from tcx_running_analyzer.workflow_cli import main as workflow_main
 
 
 class WorkflowTests(unittest.TestCase):

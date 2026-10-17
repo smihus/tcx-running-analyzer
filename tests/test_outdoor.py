@@ -11,9 +11,9 @@ import unittest
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
-from garmin_tcx_running_analyzer.core import parse_tz, summarize
-from garmin_tcx_running_analyzer.cli import resolve_activity_identities, batch_summary, read_metadata
-from garmin_tcx_running_analyzer.metadata_cli import validate_patch
+from tcx_running_analyzer.core import parse_tz, summarize
+from tcx_running_analyzer.cli import resolve_activity_identities, batch_summary, read_metadata
+from tcx_running_analyzer.metadata_cli import validate_patch
 
 NS='http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2'
 EX='http://www.garmin.com/xmlschemas/ActivityExtension/v2'
@@ -199,7 +199,7 @@ class OutdoorTests(unittest.TestCase):
             r=summarize(fixture(Path(td)/'a.tcx'),parse_tz('+00:00'),None,None,'unknown',S)
             r2=copy.deepcopy(r)
             r2['source']['filename']='b.tcx'
-            r2['total']['garmin_distance_m']+=1000
+            r2['total']['tcx_distance_m']+=1000
             unique, dupl, conflicts=resolve_activity_identities([r,r2])
             self.assertEqual(len(unique),2)
             self.assertEqual(len(dupl),0)

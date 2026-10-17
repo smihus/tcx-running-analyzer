@@ -6,4 +6,4 @@ This repository develops an **offline Python running analyzer**. For normal code
 
 This file helps agents that discover root-level `AGENTS.md`. Actual skill registration, execution permissions and environment discovery remain agent-specific; see `agent/README.md`.
 
-For v1.4.0 outdoor tasks, read `docs/OUTDOOR_RUNNING.md`: GPS coordinates are private, pause detection and activity classification are heuristics, and batch reports may contain multiple exports of one Garmin Activity ID. Tests may only use fabricated coordinate fixtures.
+For v1.4.0 outdoor tasks, read `docs/OUTDOOR_RUNNING.md`: GPS coordinates are private, pause detection and activity classification are heuristics, and batch reports may contain multiple exports of one TCX activity ID. Tests may only use fabricated coordinate fixtures.

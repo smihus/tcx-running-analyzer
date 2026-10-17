@@ -1,7 +1,7 @@
 """Outdoor/indoor-neutral measurements, with no raw GPS coordinates in reports.
 
 Derived metrics are estimates based on TCX samples, not proof of physical motion,
-GPS accuracy, or the state of a Garmin auto-pause setting.
+GPS accuracy, or the state of a device auto-pause setting.
 """
 from __future__ import annotations
 
@@ -122,7 +122,7 @@ def elevation_summary(points):
 
 
 def distance_splits(points, pauses, unit_m=1000):
-    """Full-distance splits using cumulative Garmin distance (not spherical GPS path).
+    """Full-distance splits using cumulative TCX-recorded distance (not spherical GPS path).
 
     Interpolates between valid monotonic distance trackpoints. Split clock time
     is adjusted for *inferred* stopped-timer gaps, while elapsed is preserved.
@@ -164,7 +164,7 @@ def outdoor_metrics(points, mode, pauses, gaps, elapsed_s, running_moving_s):
     out = {"mode": mode,
            "gps_points": gps,
            "gps_available": gps >= 5,
-           "distance_source":"Garmin_DistanceMeters" if distance is not None else "unknown",
+           "distance_source":"TCX_DistanceMeters" if distance is not None else "unknown",
            "elapsed_duration_s":round(elapsed_s,1),
            "active_estimated_duration_s":round(active,1),
            "inferred_paused_duration_s":round(paused,1),

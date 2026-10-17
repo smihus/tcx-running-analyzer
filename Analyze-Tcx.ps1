@@ -1,4 +1,4 @@
-# Offline Garmin TCX runner: file -> one JSON, folder -> one combined JSON.
+# Offline TCX runner: file -> one JSON, folder -> one combined JSON.
 # Requires Python 3.10+. No installation or additional Python dependencies.
 [CmdletBinding()]
 param(
@@ -25,7 +25,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $src = Join-Path $PSScriptRoot 'src'
-if (-not (Test-Path -LiteralPath (Join-Path $src 'garmin_tcx_running_analyzer\__main__.py'))) {
+if (-not (Test-Path -LiteralPath (Join-Path $src 'tcx_running_analyzer\__main__.py'))) {
     throw "Python package not found under $src"
 }
 if ($Python) {
@@ -40,7 +40,7 @@ if ($Python) {
     $exe = $pythonCmd.Source
     $prefix = @()
 }
-$argsList = @('-m', 'garmin_tcx_running_analyzer', $Path, '--tz-offset', $UtcOffset, '--hr-source', $HeartRateSource,
+$argsList = @('-m', 'tcx_running_analyzer', $Path, '--tz-offset', $UtcOffset, '--hr-source', $HeartRateSource,
               '--run-cadence-threshold', $CadenceThreshold.ToString([cultureinfo]::InvariantCulture),
               '--activity-mode', $ActivityMode)
 if ($Output) { $argsList += @('--output', $Output) }
@@ -59,7 +59,7 @@ $previousPath = $env:PYTHONPATH
 try {
     $env:PYTHONPATH = if ($previousPath) { "$src$([IO.Path]::PathSeparator)$previousPath" } else { $src }
     & $exe @prefix @argsList
-    if ($LASTEXITCODE -ne 0) { throw "Garmin TCX Running Analyzer failed (exit code $LASTEXITCODE)." }
+    if ($LASTEXITCODE -ne 0) { throw "TCX Running Analyzer failed (exit code $LASTEXITCODE)." }
 } finally {
     $env:PYTHONPATH = $previousPath
 }

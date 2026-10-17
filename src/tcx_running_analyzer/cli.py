@@ -214,7 +214,7 @@ def apply_subjective(report: dict, values: dict):
 
 
 def resolve_activity_identities(activities: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
-    """Deduplicate likely re-exports; never drop a conflicting Garmin activity ID.
+    """Deduplicate likely re-exports; never drop a conflicting TCX activity ID.
 
     All file reports stay in `activities` with transparent provenance. Only
     statistically equivalent IDs count once in aggregate exercise statistics.
@@ -231,10 +231,10 @@ def resolve_activity_identities(activities: list[dict]) -> tuple[list[dict], lis
             continue
         baseline = group[0]['total']
         sport = group[0]['source'].get('sport')
-        distance = baseline.get('garmin_distance_m')
+        distance = baseline.get('tcx_distance_m')
         duration = baseline.get('recorded_duration_s')
         def equivalent(row):
-            dd = row['total'].get('garmin_distance_m')
+            dd = row['total'].get('tcx_distance_m')
             dt = row['total'].get('recorded_duration_s')
             return (row['source'].get('sport') == sport and
                     distance is not None and dd is not None and
@@ -258,7 +258,7 @@ def resolve_activity_identities(activities: list[dict]) -> tuple[list[dict], lis
             duplicates.append({'activity_id':activity_id,
                                'canonical_file':representative['source']['filename'],
                                'duplicate_files':[r['source']['filename'] for r in group if r is not representative],
-                               'reason':'matching_Garmin_ID_distance_and_elapsed_time'})
+                               'reason':'matching_TCX_activity_ID_distance_and_elapsed_time'})
         else:
             # Never silently merge diverging exports sharing an ID.
             unique.extend(group)
@@ -307,14 +307,14 @@ def batch_summary(activities: list[dict], files_found: int, errors: list[dict], 
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap=argparse.ArgumentParser(prog="garmin-tcx-running-analyzer",
-        description="Analyze one Garmin TCX or a folder/archive. Folder mode creates ONE comprehensive JSON.")
+    ap=argparse.ArgumentParser(prog="tcx-running-analyzer",
+        description="Analyze one TCX or a folder/archive. Folder mode creates ONE comprehensive JSON.")
     ap.add_argument("inputs", nargs="+", help="TCX files, folders, or globs (all results go into ONE JSON)")
     ap.add_argument("-o", "--output", help="output JSON file; default: <file>.running.json or <folder>/running-activities.json")
     ap.add_argument("--recursive", action="store_true", help="include TCX files in subfolders")
     ap.add_argument("--tz-offset", type=parse_tz, default=parse_tz("+00:00"), help="local UTC offset, e.g. +04:00 (default +00:00)")
     ap.add_argument("--treadmill-km", type=positive_number, help="whole treadmill session distance; only for one file")
-    ap.add_argument("--run-speed-kmh", type=positive_number, help="confirmed treadmill running speed; never inferred from Garmin")
+    ap.add_argument("--run-speed-kmh", type=positive_number, help="confirmed treadmill running speed; never inferred from TCX")
     ap.add_argument("--hr-source", choices=SENSORS, default="unknown", help="manual sensor label, not detected from TCX")
     ap.add_argument("--activity-mode", choices=('auto','treadmill','outdoor','unknown'), default='auto',
                     help="training environment; auto uses treadmill input or GPS evidence")
@@ -399,12 +399,12 @@ def main(argv: list[str] | None = None) -> int:
             summary['duplicate_exports_excluded']=sum(len(g['duplicate_files']) for g in duplicate_groups)
             summary['activity_id_conflicts']=id_conflicts
             summary['activity_id_conflict_count']=len(id_conflicts)
-            summary['duplicate_policy']='Only Garmin IDs with agreeing distance and elapsed duration are merged for aggregate stats; all reports remain visible.' 
+            summary['duplicate_policy']='Only TCX activity IDs with agreeing distance and elapsed duration are merged for aggregate stats; all reports remain visible.' 
             summary['archive_completeness']=archive_completeness(files,batch_root,expected)
             summary['observed_date_gaps']=date_gap_report(unique,args.date_gap_days)
             summary['date_gap_note']='Observed gaps are not proof of missing workouts; planned rest periods are normal.'
-            report={"schema_version":"1.0","report_type":"tcx_running_collection",
-                    "generator":{"name":"garmin-tcx-running-analyzer","version":VERSION},
+            report={"schema_version":"2.0","report_type":"tcx_running_collection",
+                    "generator":{"name":"tcx-running-analyzer","version":VERSION},
                     "source":{"mode":"directory_or_multiple_files","recursive":args.recursive,
                               "source_label":Path(args.inputs[0]).name},
                     "summary":summary,

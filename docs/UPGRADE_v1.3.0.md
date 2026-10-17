@@ -10,7 +10,7 @@
 ## Пример Windows (после распаковки патча)
 
 ```powershell
-cd C:\Projects\garmin-tcx-running-analyzer
+cd C:\Projects\tcx-running-analyzer
 py -3 -m unittest discover -s tests -v
 git diff --check
 git add AGENTS.md Running-Workflow.ps1 .gitignore .github/workflows/tests.yml src/ tests/ agent/ docs/ examples/ README.md README.ru.md CHANGELOG.md pyproject.toml

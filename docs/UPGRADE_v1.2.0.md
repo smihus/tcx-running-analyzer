@@ -4,14 +4,14 @@ The `v1.2.0` update keeps the v1.1.0 JSON `schema_version` (`1.0`) and existing 
 
 ## Applying the patch to an existing Git clone (Windows PowerShell)
 
-1. Download `Garmin_TCX_Running_Analyzer_v1.2.0_patch.zip` and keep the original public repository clone.
+1. Download `TCX_Running_Analyzer_v1.2.0_patch.zip` and keep the original public repository clone.
 2. In PowerShell (adjust the ZIP path):
 
 ```powershell
-cd C:\Projects\garmin-tcx-running-analyzer
+cd C:\Projects\tcx-running-analyzer
 # Verify you do not have unrelated uncommitted changes before overwriting code.
 git status --short
-Expand-Archive -LiteralPath 'C:\Downloads\Garmin_TCX_Running_Analyzer_v1.2.0_patch.zip' -DestinationPath . -Force
+Expand-Archive -LiteralPath 'C:\Downloads\TCX_Running_Analyzer_v1.2.0_patch.zip' -DestinationPath . -Force
 py -3 -m unittest discover -s tests -v
 git status --short
 git add .

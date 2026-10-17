@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
-from garmin_tcx_running_analyzer.core import summarize,parse_tz,load_tcx
+from tcx_running_analyzer.core import summarize,parse_tz,load_tcx
 from helpers import synthetic_tcx
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -107,7 +107,7 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(result['quality']['info_count'],0)
 
     def test_adjacent_hr_jumps_are_grouped_into_one_episode(self):
-        from garmin_tcx_running_analyzer.core import group_hr_jump_episodes
+        from tcx_running_analyzer.core import group_hr_jump_episodes
         events = [
             {'time_utc':'2026-03-23T16:25:04+00:00','time_local':'2026-03-23T20:25:04+04:00',
              'phase':'before_running','run_index':None,
@@ -125,7 +125,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(e['end_local'],'2026-03-23T20:25:05+04:00')
 
     def test_jump_episode_grouping_does_not_merge_phase_gap_or_direction(self):
-        from garmin_tcx_running_analyzer.core import group_hr_jump_episodes
+        from tcx_running_analyzer.core import group_hr_jump_episodes
         def make(t,prev,cur,phase):
             return {'time_utc':f'2026-09-17T16:46:{t:02d}+00:00',
                     'time_local':f'2026-09-17T20:46:{t:02d}+04:00',
@@ -141,7 +141,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(e[2]['phase'],'after_running')
 
     def test_non_running_low_cadence_lap_is_flagged_as_candidate_not_run(self):
-        from garmin_tcx_running_analyzer.core import ambiguous_low_cadence_laps
+        from tcx_running_analyzer.core import ambiguous_low_cadence_laps
         date=datetime(2026,3,9,tzinfo=timezone.utc)
         laps=[{'number':2,'start':date,'seconds':176.1,'avg_run_cadence_raw':64},
               {'number':4,'start':date,'seconds':1200,'avg_run_cadence_raw':50}]

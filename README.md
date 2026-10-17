@@ -1,20 +1,20 @@
-# Garmin TCX Running Analyzer
+# TCX Running Analyzer
 
-**Offline running workout analysis for Garmin TCX files → AI-ready JSON**
+**Offline running workout analysis for TCX files from supported fitness devices → AI-ready JSON**
 
 [Документация на русском](README.ru.md) · [JSON format](docs/JSON_FORMAT.md) · [Optional AI agent instructions](agent/README.md) · [MIT License](LICENSE)
 
-Garmin TCX Running Analyzer extracts heart-rate, cadence, running intervals, recovery, distance, and **outdoor GPS-derived metrics** from exported Garmin TCX workouts. It is a **local, dependency-free Python 3.10+ CLI**. No cloud service, account or Garmin API required.
+TCX Running Analyzer extracts heart-rate, cadence, running intervals, recovery, distance, and **outdoor GPS-derived metrics** from exported TCX workouts. It is a **local, dependency-free Python 3.10+ CLI**. No cloud service, account or device-vendor API required.
 
 **Folder mode produces exactly ONE combined JSON with all workouts and an archive summary.** Individual input files are not modified.
 
 ## Features
 
 - **Indoor treadmill and outdoor GPS running** in one analyzer: automatic/confirmed activity mode, whole-activity GPS pace, device-distance kilometer and mile splits, elevation and pause-aware time.
-- Detect equivalent re-exports of the same Garmin activity ID; keep every file report but avoid counting the same workout twice in archive totals. Conflicts are flagged, never silently merged.
+- Detect equivalent re-exports of the same TCX activity ID; keep every file report but avoid counting the same workout twice in archive totals. Conflicts are flagged, never silently merged.
 - Do not expose raw GPS coordinates in report JSON (privacy by default). See [Outdoor Running and GPS](docs/OUTDOOR_RUNNING.md) and [validation notes](docs/VALIDATION_v1.4.0.md).
 
-- Automatically detects running bouts: 5×7, 3×10, 2×15, 30-minute continuous runs and other lengths, using cadence and Garmin lap hints.
+- Automatically detects running bouts: 5×7, 3×10, 2×15, 30-minute continuous runs and other lengths, using cadence and TCX lap hints.
 - Heart-rate averages/peaks, first vs. second half, five-minute splits, last 30 seconds and post-run recovery.
 - Cadence in **steps/min** (Garmin RunCadence values doubled for compatible Garmin exports).
 - Classified diagnostics (`warning` vs `info`), with exact timestamps and phases for abrupt HR jumps.
@@ -50,7 +50,7 @@ PowerShell, executed by the agent or by the user on Windows:
 
 `auto` detects GPS positions, while confirmed treadmill parameters take precedence. An unknown activity mode remains `unknown` rather than assuming treadmill. An athlete can confirm mode through private metadata. See [Outdoor Running and GPS](docs/OUTDOOR_RUNNING.md) and [upgrade notes](docs/UPGRADE_v1.4.0.md).
 
-For outdoor sessions, `total.elapsed_duration_s` (wall clock), `total.timer_duration_s` (sum of Garmin lap timers), `total.inferred_paused_duration_s` and `total.running_moving_duration_s` are distinct. Large no-distance-progress gaps are **inferred** pauses, not confirmed auto-pause events. Sparse regular GPS logging is not automatically a quality warning. Outdoor `total.run_duration_s` is pause-adjusted, so some historical outdoor figures differ from v1.3.0. `outdoor.pace_active_sec_per_km` includes the **whole** moving session, including walking; it is not running-only pace.
+For outdoor sessions, `total.elapsed_duration_s` (wall clock), `total.timer_duration_s` (sum of TCX lap timers), `total.inferred_paused_duration_s` and `total.running_moving_duration_s` are distinct. Large no-distance-progress gaps are **inferred** pauses, not confirmed auto-pause events. Sparse regular GPS logging is not automatically a quality warning. Outdoor `total.run_duration_s` is pause-adjusted, so some historical outdoor figures differ from v1.3.0. `outdoor.pace_active_sec_per_km` includes the **whole** moving session, including walking; it is not running-only pace.
 
 Archive `summary.activities_succeeded` counts parsed files; `summary.unique_activities_counted` counts non-duplicate activities included in totals. All source records stay available.
 
@@ -77,14 +77,14 @@ For development or installation in an isolated environment:
 
 ```shell
 python -m pip install -e .
-garmin-tcx-running-analyzer "./activity.tcx" --run-speed-kmh 6.0 --tz-offset +04:00
-garmin-tcx-running-analyzer "./workouts" --recursive --output "./history.json"
+tcx-running-analyzer "./activity.tcx" --run-speed-kmh 6.0 --tz-offset +04:00
+tcx-running-analyzer "./workouts" --recursive --output "./history.json"
 ```
 
 Without installing the package (macOS/Linux/Windows terminal):
 
 ```shell
-PYTHONPATH=src python -m garmin_tcx_running_analyzer "./workouts" --recursive --output "./history.json"
+PYTHONPATH=src python -m tcx_running_analyzer "./workouts" --recursive --output "./history.json"
 ```
 
 Windows PowerShell users should use `Analyze-Tcx.ps1` above rather than POSIX `PYTHONPATH=...` syntax.
@@ -114,7 +114,7 @@ Windows PowerShell users should use `Analyze-Tcx.ps1` above rather than POSIX `P
 Unlike a one-file invocation, a folder may contain runs at different treadmill speeds and using different HR sensors. Supply per-workout facts with an optional mapping (see [`examples/metadata.example.json`](examples/metadata.example.json)):
 
 ```shell
-garmin-tcx-running-analyzer ./workouts --recursive --metadata ./my-metadata.json --output ./history.json
+tcx-running-analyzer ./workouts --recursive --metadata ./my-metadata.json --output ./history.json
 ```
 
 The keys are **exact basenames** (`activity.tcx`). If multiple files under subfolders have the same basename and metadata is supplied, the script reports an error instead of misassigning personal data. Do **not** commit personal `my-metadata.json` or workouts to your public fork.
@@ -177,15 +177,19 @@ Tests use synthetic TCX fixtures, and CI checks Windows and Linux. [`CONTRIBUTIN
 ## Limits / privacy
 
 - TCX alone does **not** establish whether HR was recorded by a wrist sensor or a Polar H10.
-- Garmin treadmill speed/distance can be miscalibrated; recorded distance is not a ground truth.
+- Indoor TCX speed/distance can be miscalibrated; recorded distance is not a ground truth.
 - Cadence/lap inference is a **heuristic**. Unusual sessions need verification.
 - The `summary` aggregates only training measurements; it cannot establish medical risk or injury status.
 - All analysis runs offline; no telemetry, uploads or accounts.
 
 ## License
 
-[MIT](LICENSE). Commercial use, modification, copying and redistribution permitted; keep the copyright and license notice in distributed substantial copies. The project is independent and is not affiliated with Garmin.
+[MIT](LICENSE). Commercial use, modification, copying and redistribution permitted; keep the copyright and license notice in distributed substantial copies. The project is independent and is not affiliated with any device manufacturer.
 
 ### HR event grouping and uncertain low-cadence laps (v1.2.1)
 
 See [JSON_FORMAT.md](docs/JSON_FORMAT.md): `quality.hr_jump_episodes` summarizes consecutive abrupt HR changes while preserving raw `hr_abrupt_jumps`; `quality.unclassified_low_cadence_laps` suggests laps to verify when run detection finds none. Neither diagnoses an artifact nor guesses running below the cadence threshold.
+
+## Repository and JSON schema rename (v1.4.0)
+
+Project URL: https://github.com/smihus/tcx-running-analyzer. In this release the Python distribution, import module, command and vendor-neutral distance keys have new names; old Garmin-branded aliases are **not** provided. JSON `schema_version` is `2.0`. Regenerate computed reports from TCX and retain private verified metadata. See [v1.4.0 upgrade notes](docs/UPGRADE_v1.4.0.md).

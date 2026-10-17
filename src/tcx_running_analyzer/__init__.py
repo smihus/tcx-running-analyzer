@@ -1,4 +1,4 @@
-"""Garmin TCX running workout statistics, offline and dependency-free."""
+"""TCX running workout statistics, offline and dependency-free."""
 
 from .core import VERSION, summarize, parse_tz
 

@@ -1,6 +1,6 @@
 ---
 name: maintain-running-metadata
-description: Safely keep a persistent private running-metadata.json from the athlete's explicit answers, link notes to Garmin TCX identities, and rebuild the combined running-history.json without changing measured metrics.
+description: Safely keep a persistent private running-metadata.json from the athlete's explicit answers, link notes to TCX activity identities, and rebuild the combined running-history.json without changing measured metrics.
 ---
 
 # Maintain athlete-reported workout metadata
@@ -27,8 +27,8 @@ Ask selectively about meaningful missing details, such as physical sensations (i
    ```
    Or cross-platform after installation:
    ```shell
-   python -m garmin_tcx_running_analyzer.metadata_cli --report ./local-data/running-activities.json --metadata ./local-data/running-metadata.json --file activity_123.tcx --patch ./pending-confirmed.json
-   python -m garmin_tcx_running_analyzer.workflow_cli rebuild --workspace ./local-data
+   python -m tcx_running_analyzer.metadata_cli --report ./local-data/running-activities.json --metadata ./local-data/running-metadata.json --file activity_123.tcx --patch ./pending-confirmed.json
+   python -m tcx_running_analyzer.workflow_cli rebuild --workspace ./local-data
    ```
 4. Verify that `running-history.json` shows exactly the confirmed values for the matching workout and retains historical metadata. Explicitly report a blocked identity mismatch; never override or rename a conflicting file silently. Delete only the temporary patch file if no longer needed; preserve persistent metadata.
 5. If user supplies no new information, **do not create empty or invented metadata**. Continue analyzing objective measurements.

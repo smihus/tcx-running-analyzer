@@ -1,10 +1,10 @@
-# Garmin TCX Running Analyzer — Optional AI Agent Workflow
+# TCX Running Analyzer — Optional AI Agent Workflow
 
 These rules are **opt-in**. They do not grant file-system access or activate automatically in every AI chat. Apply them when the user wants an AI agent to analyze or maintain running workouts.
 
 ## Primary workflow: TCX input first
 
-1. **Receive** one or more Garmin TCX files from the user (or an authorized local folder). Do not require the user to run the analyzer or submit an intermediate JSON.
+1. **Receive** one or more TCX files from the user (or an authorized local folder). Do not require the user to run the analyzer or submit an intermediate JSON.
 2. **Ingest and analyze** with `agent/skills/analyze-running-tcx/SKILL.md` using `Running-Workflow.ps1 -Ingest` or the Python workflow CLI. Keep a private persistent workspace, default `local-data/`.
 3. **Read and validate** `running-activities.json` and existing `running-metadata.json` if any. Check errors, running boundaries, diagnostics and identification before interpreting.
 4. **Ask only useful unresolved questions** about feelings/effort, treadmill distance or speed and HR sensor, honoring past confirmed answers and user refusals. See `agent/skills/maintain-running-metadata/SKILL.md`.

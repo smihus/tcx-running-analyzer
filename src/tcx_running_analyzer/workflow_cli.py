@@ -1,8 +1,8 @@
 """Local agent-friendly TCX archive ingestion and repeatable history rebuild.
 
 Command examples:
-  python -m garmin_tcx_running_analyzer.workflow_cli ingest --workspace local-data --tz-offset +04:00 file.tcx
-  python -m garmin_tcx_running_analyzer.workflow_cli rebuild --workspace local-data
+  python -m tcx_running_analyzer.workflow_cli ingest --workspace local-data --tz-offset +04:00 file.tcx
+  python -m tcx_running_analyzer.workflow_cli rebuild --workspace local-data
 
 The user-metadata JSON is never generated from TCX and is never overwritten.
 """

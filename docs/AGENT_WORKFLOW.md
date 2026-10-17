@@ -29,7 +29,7 @@ Subsequent ingestion uses the saved offset (omit `-UtcOffset`); multiple TCX inp
 ## Confirm user facts and save them
 
 1. Read `running-activities.json`; check warnings, running boundaries, HR, cadence and prior metadata in `running-metadata.json` (if any).
-2. Ask only useful unresolved questions. Possible subjects: foot/heel/back pain, fatigue, breathing, confirmed treadmill distance for the **entire session**, actual treadmill running speed and HR sensor. Do not assume a sensor simply because of the date, or a treadmill value from Garmin data. If the user already stated the fact, do not ask again. If unknown or declined, leave it absent.
+2. Ask only useful unresolved questions. Possible subjects: foot/heel/back pain, fatigue, breathing, confirmed treadmill distance for the **entire session**, actual treadmill running speed and HR sensor. Do not assume a sensor simply because of the date, or a treadmill value from TCX data. If the user already stated the fact, do not ask again. If unknown or declined, leave it absent.
 3. Create a temporary JSON patch containing **only explicit user-provided values** (see `examples/user-feedback.patch.example.json`). Avoid using `null` to erase a previous fact. Manual `run_windows` must be independently checked against the reported activity timeline and user-confirmed.
 4. Merge only that training's patch:
 
@@ -37,14 +37,14 @@ Subsequent ingestion uses the saved offset (omit `-UtcOffset`); multiple TCX inp
 .\Running-Workflow.ps1 -Record -Workspace '.\local-data' -File 'activity_123.tcx' -Patch 'C:\Temp\confirmed-feedback.json'
 ```
 
-The command checks the training's Garmin activity ID and SHA-256 before updating metadata, preserves all other entries/fields, then refreshes both reports. The user should review corrections to previously entered values if they conflict. A failure during the history rebuild leaves metadata saved and can be resolved by retrying `-Rebuild`.
+The command checks the training's TCX activity ID and SHA-256 before updating metadata, preserves all other entries/fields, then refreshes both reports. The user should review corrections to previously entered values if they conflict. A failure during the history rebuild leaves metadata saved and can be resolved by retrying `-Rebuild`.
 
 ## Standalone Python commands (macOS, Linux, Windows after `pip install -e .`)
 
 ```shell
-python -m garmin_tcx_running_analyzer.workflow_cli ingest --workspace ./local-data --tz-offset +04:00 ./incoming/activity_123.tcx
-python -m garmin_tcx_running_analyzer.metadata_cli --report ./local-data/running-activities.json --metadata ./local-data/running-metadata.json --file activity_123.tcx --patch ./confirmed-feedback.json
-python -m garmin_tcx_running_analyzer.workflow_cli rebuild --workspace ./local-data
+python -m tcx_running_analyzer.workflow_cli ingest --workspace ./local-data --tz-offset +04:00 ./incoming/activity_123.tcx
+python -m tcx_running_analyzer.metadata_cli --report ./local-data/running-activities.json --metadata ./local-data/running-metadata.json --file activity_123.tcx --patch ./confirmed-feedback.json
+python -m tcx_running_analyzer.workflow_cli rebuild --workspace ./local-data
 ```
 
 For direct source execution without installation, set `PYTHONPATH=src` using your shell's syntax. `Running-Workflow.ps1` manages `PYTHONPATH` automatically.

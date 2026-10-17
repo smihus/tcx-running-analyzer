@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
-from garmin_tcx_running_analyzer.cli import main,parse_run_windows,find_files
+from tcx_running_analyzer.cli import main,parse_run_windows,find_files
 from helpers import synthetic_tcx
 
 class CLITests(unittest.TestCase):

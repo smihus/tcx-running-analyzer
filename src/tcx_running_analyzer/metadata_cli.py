@@ -1,6 +1,6 @@
 """Safe, idempotent user-metadata updates based on an analyzer report.
 
-Usage: python -m garmin_tcx_running_analyzer.metadata_cli --report RAW_JSON
+Usage: python -m tcx_running_analyzer.metadata_cli --report RAW_JSON
        --metadata METADATA_JSON --file TCX_BASENAME --patch PATCH_JSON
 
 PATCH_JSON contains only fields explicitly confirmed by a user. Never infer
@@ -89,7 +89,7 @@ def atomic_json(path: Path, data: dict):
 def upsert(metadata_file: Path, report_file: Path, filename: str, patch_file: Path) -> bool:
     """Upsert explicitly supplied values; false if nothing changed.
 
-    `identity` binds filename to the actual Garmin activity and TCX checksum.
+    `identity` binds filename to the actual TCX activity and TCX checksum.
     A new/different TCX reusing the same basename can never silently inherit
     another workout's personal notes.
     """

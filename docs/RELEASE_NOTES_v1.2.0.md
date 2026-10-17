@@ -1,4 +1,4 @@
-# Garmin TCX Running Analyzer v1.2.0
+# TCX Running Analyzer v1.2.0
 
 **Offline running workout analysis for Garmin TCX → AI-ready JSON**
 

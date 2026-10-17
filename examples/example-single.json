@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "generator": {
     "name": "run_tcx_analyzer",
     "version": "1.2.0"
@@ -24,7 +24,7 @@
   },
   "total": {
     "recorded_duration_s": 1260.0,
-    "garmin_distance_m": 1916.7,
+    "tcx_distance_m": 1916.7,
     "treadmill_distance_m": null,
     "hr_avg_bpm": 109.8,
     "hr_max_bpm": 126.0,
@@ -59,7 +59,7 @@
       "hr_avg_bpm": 122.0,
       "hr_max_bpm": 122.0,
       "cadence_avg_spm": 166.0,
-      "distance_garmin_m": 500.0,
+      "distance_tcx_m": 500.0,
       "hr_last30s_avg_bpm": 122.0,
       "hr_first30s_avg_bpm": 122.0,
       "hr_first_half_avg_bpm": 122.0,
@@ -76,7 +76,7 @@
         }
       ],
       "treadmill_expected_running_m": 500.0,
-      "garmin_distance_error_pct": 0.0,
+      "tcx_distance_error_pct": 0.0,
       "boundary_adjustment_s": {
         "start": 0.0,
         "end": 0.0
@@ -97,7 +97,7 @@
       "hr_avg_bpm": 126.0,
       "hr_max_bpm": 126.0,
       "cadence_avg_spm": 168.0,
-      "distance_garmin_m": 500.0,
+      "distance_tcx_m": 500.0,
       "hr_last30s_avg_bpm": 126.0,
       "hr_first30s_avg_bpm": 126.0,
       "hr_first_half_avg_bpm": 126.0,
@@ -114,7 +114,7 @@
         }
       ],
       "treadmill_expected_running_m": 500.0,
-      "garmin_distance_error_pct": 0.0,
+      "tcx_distance_error_pct": 0.0,
       "boundary_adjustment_s": {
         "start": 0.0,
         "end": 0.0
@@ -164,7 +164,7 @@
       "number": 1,
       "start_local": "2026-01-03T19:00:00+04:00",
       "duration_s": 300.0,
-      "garmin_distance_m": 416.7,
+      "tcx_distance_m": 416.7,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 100.0
@@ -173,7 +173,7 @@
       "number": 2,
       "start_local": "2026-01-03T19:05:00+04:00",
       "duration_s": 300.0,
-      "garmin_distance_m": 500.0,
+      "tcx_distance_m": 500.0,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 166.0
@@ -182,7 +182,7 @@
       "number": 3,
       "start_local": "2026-01-03T19:10:00+04:00",
       "duration_s": 60.0,
-      "garmin_distance_m": 83.3,
+      "tcx_distance_m": 83.3,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 100.0
@@ -191,7 +191,7 @@
       "number": 4,
       "start_local": "2026-01-03T19:11:00+04:00",
       "duration_s": 300.0,
-      "garmin_distance_m": 500.0,
+      "tcx_distance_m": 500.0,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 168.0
@@ -200,7 +200,7 @@
       "number": 5,
       "start_local": "2026-01-03T19:16:00+04:00",
       "duration_s": 300.0,
-      "garmin_distance_m": 416.7,
+      "tcx_distance_m": 416.7,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 102.0

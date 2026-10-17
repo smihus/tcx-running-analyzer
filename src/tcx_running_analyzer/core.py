@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Convert Garmin TCX running activities into compact, auditable JSON reports.
+"""Convert TCX running activities into compact, auditable JSON reports.
 
 Python 3.10+, standard library only. Original TCX is never modified.
-For indoor activities, Garmin speed/distance must not be assumed accurate.
+For indoor activities, TCX-reported speed/distance must not be assumed accurate.
 """
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ def load_tcx(file: Path):
         lap_hr = number(l.findtext("t:AverageHeartRateBpm/t:Value", namespaces=NS))
         lap_max = number(l.findtext("t:MaximumHeartRateBpm/t:Value", namespaces=NS))
         lap_cad = number(l.findtext("t:Extensions/e:LX/e:AvgRunCadence", namespaces=NS))
-        laps.append({"number": ix, "start": start, "seconds": dur, "garmin_m": ldist,
+        laps.append({"number": ix, "start": start, "seconds": dur, "tcx_m": ldist,
                      "avg_hr_reported": lap_hr, "max_hr_reported": lap_max,
                      "avg_run_cadence_raw": lap_cad})
         for tp in l.findall("t:Track/t:Trackpoint", NS):
@@ -143,7 +143,7 @@ def series_stats(points):
     return {
         "hr_avg_bpm": rounded(mean(hrs)), "hr_max_bpm": rounded(maximum(hrs), 0),
         "cadence_avg_spm": rounded(mean(cds)),
-        "distance_garmin_m": rounded(dist[-1] - dist[0], 1) if len(dist) >= 2 else None,
+        "distance_tcx_m": rounded(dist[-1] - dist[0], 1) if len(dist) >= 2 else None,
         "hr_last30s_avg_bpm": rounded(mean(hrs[-30:])) if hrs else None,
     }
 
@@ -153,7 +153,7 @@ def median_filter_flags(points, cadence_threshold=145, window=9):
     c = [p.cadence or 0 for p in points]
     out = []
     for i in range(len(points)):
-        # median filter on cadence, no dependence on inaccurate Garmin speed
+        # median filter on cadence, no dependence on device-reported speed
         vals = c[max(0, i-half):min(len(c), i+half+1)]
         out.append(statistics.median(vals) >= cadence_threshold)
     return out
@@ -192,7 +192,7 @@ def detect_runs(points, laps, threshold=145, min_seconds=45, join_gap=12):
         if dur >= min_seconds:
             valid.append((a,b))
     # Ignore short pre-workout cadence noise if genuine hand-marked run laps exist.
-    # Garmin may briefly report 150+ cadence while walking around the gym.
+    # A wearable may briefly report 150+ cadence while walking around the gym.
     strong = [l for l in laps if l["start"] is not None and l["seconds"] is not None
               and l["avg_run_cadence_raw"] is not None
               and l["avg_run_cadence_raw"]*2 >= threshold
@@ -204,7 +204,7 @@ def detect_runs(points, laps, threshold=145, min_seconds=45, join_gap=12):
 
 
 def align_run_windows(points, run_indices, laps):
-    """Snap cadence-detected runs to Garmin's manual-lap timings when consistent.
+    """Snap cadence-detected runs to TCX manual-lap timings when consistent.
 
     Manual laps are trusted for full running blocks. If a running block continues
     within a mixed lap, minute rounding is only done when within 20 seconds of
@@ -229,7 +229,7 @@ def align_run_windows(points, run_indices, laps):
         new_end=nearby(end,anchors,25)
         if new_end: end=new_end
         else:
-            # Garmin running cadence can linger briefly after treadmill stops.
+            # Running cadence can linger briefly after treadmill stops.
             actual=(end-start).total_seconds()
             rounded_minutes=round(actual/60)*60
             if rounded_minutes>=45 and abs(actual-rounded_minutes)<=20:
@@ -255,7 +255,7 @@ def period(points, a, b):
 
 
 def exact_distance(points, a, b):
-    # Use interpolated cumulative Garmin distance when available at boundaries.
+    # Use interpolated cumulative TCX distance when available at boundaries.
     xs = [p for p in points if p.dist is not None]
     if len(xs) < 2 or a >= b:
         return None
@@ -280,7 +280,7 @@ def profile(points, a, b, tz, speed_kmh=None):
     if length <= 0 or not ps: return None
     result={"start_local":iso(a,tz),"end_local":iso(b,tz),"duration_s":rounded(length,1)}
     result.update(series_stats(ps))
-    result["distance_garmin_m"] = rounded(exact_distance(points,a,b),1)
+    result["distance_tcx_m"] = rounded(exact_distance(points,a,b),1)
     result["hr_first30s_avg_bpm"] = rounded(mean([x.hr for x in period(points,a,min(a+timedelta(seconds=30),b))]))
     half=a+(b-a)/2
     result["hr_first_half_avg_bpm"] = rounded(mean([x.hr for x in period(points,a,half)]))
@@ -305,7 +305,7 @@ def profile(points, a, b, tz, speed_kmh=None):
         expect=length * speed_kmh / 3.6
         result["treadmill_expected_running_m"] = rounded(expect,1)
         dg=exact_distance(points,a,b)
-        result["garmin_distance_error_pct"] = rounded((dg/expect-1)*100,2) if dg is not None and expect>0 else None
+        result["tcx_distance_error_pct"] = rounded((dg/expect-1)*100,2) if dg is not None and expect>0 else None
     return result
 
 
@@ -351,10 +351,10 @@ def run_detection_evidence(points, laps, start, end, method, start_shift=0, end_
         reason = 'No cadence samples support classification'
     elif method=='outdoor_cadence' and cadence_fraction >= .9:
         confidence = 'high'
-        reason = 'Sustained running cadence; Garmin distance-laps not used as run intervals'
+        reason = 'Sustained running cadence; distance-based laps not used as run intervals'
     elif cadence_fraction >= .85 and lap_coverage >= .8 and max(abs(start_shift), abs(end_shift)) <= 15:
         confidence = 'high'
-        reason = 'Sustained running cadence with consistent Garmin lap boundaries'
+        reason = 'Sustained running cadence with consistent TCX lap boundaries'
     elif cadence_fraction >= .7:
         confidence = 'medium'
         reason = 'Mostly supported by cadence, but lap evidence or transitions are weaker'
@@ -473,7 +473,7 @@ ISSUE_DESCRIPTIONS = {
     'RUN_SEGMENTS_NOT_FOUND': ('warning', 'No running bouts detected; check cadence and lap structure.'),
     'TRACKPOINT_GAPS': ('warning', 'Trackpoints contain gaps longer than two seconds.'),
     'UNOBSERVED_GAP': ('warning', 'Unusually large GPS recording gap; motion is uncertain.'),
-    'INFERRED_PAUSE': ('info', 'Long stationary sampling gap suggests stopped timer, not proof of Garmin auto-pause.'),
+    'INFERRED_PAUSE': ('info', 'Long stationary sampling gap suggests stopped timer, not proof of device auto-pause.'),
     'HR_DATA_MISSING': ('info', 'No recorded heart-rate samples in this activity.'),
     'HR_ABRUPT_JUMP': ('warning', 'One-second heart-rate change warrants inspection, not automatic artifact classification.'),
     'LAP_DISTANCE_MISMATCH': ('warning', 'Sum of lap distances differs from cumulative recorded distance.'),
@@ -516,7 +516,7 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
             raw_runs=detect_speed_runs(points,settings['min_seconds'])
             speed_fallback_used=bool(raw_runs)
         if mode == 'outdoor':
-            # Garmin distance laps (mile/km splits) must NOT be treated as
+            # Distance-based TCX laps (mile/km splits) must NOT be treated as
             # exercise interval boundaries or used for minute rounding.
             starts=[(points[a].t, min(last,points[b].t + timedelta(seconds=1)),0.0,0.0)
                     for a,b in raw_runs]
@@ -560,8 +560,8 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
     else:
         warm=cool=None
     distpoints=[p.dist for p in points if p.dist is not None]
-    sum_laps=sum(l["garmin_m"] for l in laps if l["garmin_m"] is not None)
-    total_garmin=distpoints[-1]-distpoints[0] if len(distpoints)>=2 else sum_laps
+    sum_laps=sum(l["tcx_m"] for l in laps if l["tcx_m"] is not None)
+    total_tcx=distpoints[-1]-distpoints[0] if len(distpoints)>=2 else sum_laps
     dts=[(b.t-a.t).total_seconds() for a,b in zip(points,points[1:])]
     hdiffs=[abs(b.hr-a.hr) for a,b in zip(points,points[1:]) if a.hr is not None and b.hr is not None and (b.t-a.t).total_seconds()==1]
     missing_hr=sum(p.hr is None for p in points)
@@ -584,7 +584,7 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
         warnings.append("TRACKPOINT_GAPS: one or more gaps exceed 2 seconds")
     if treadmill_km is not None:
         warnings.append("TREADMILL_DISTANCE: entered for whole treadmill session; TCX may include non-treadmill walking")
-    if len(distpoints)>=2 and abs(total_garmin - sum_laps)>5:
+    if len(distpoints)>=2 and abs(total_tcx - sum_laps)>5:
         warnings.append("LAP_DISTANCE_MISMATCH: sum of Lap distances differs from cumulative trackpoint total")
     if missing_hr == len(points):
         warnings.append('HR_DATA_MISSING: this TCX has no usable HR trackpoints')
@@ -610,7 +610,7 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
     outdoor=outdoor_metrics(points,mode,pauses,unobserved_gaps,(last-first).total_seconds(),run_seconds)
     timeline=movement_timeline(points,starts,pauses,unobserved_gaps,tz) if mode=='outdoor' else []
     out={
-        "schema_version":"1.0", "generator":{"name":"run_tcx_analyzer","version":VERSION},
+        "schema_version":"2.0", "generator":{"name":"run_tcx_analyzer","version":VERSION},
         "source":{"filename":file.name,"sha256":sha256(source_bytes).hexdigest(),
                   "activity_id":activity_id,"sport":sport,
                   "activity_mode":{"value":mode,"provenance":mode_provenance},
@@ -622,10 +622,10 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
         "total":{"recorded_duration_s":rounded((last-first).total_seconds(),1),
                  "elapsed_duration_s":rounded((last-first).total_seconds(),1),
                  "timer_duration_s":rounded(timer_seconds,1) if timer_valid else None,
-                 "timer_duration_provenance":"sum_garmin_lap_total_time" if timer_valid else "unavailable",
+                 "timer_duration_provenance":"sum_tcx_lap_total_time" if timer_valid else "unavailable",
                  "inferred_paused_duration_s":outdoor['inferred_paused_duration_s'],
                  "running_moving_duration_s":rounded(run_seconds,1),
-                 "garmin_distance_m":rounded(total_garmin,1),
+                 "tcx_distance_m":rounded(total_tcx,1),
                  "treadmill_distance_m":rounded(treadmill_km*1000,1) if treadmill_km is not None else None,
                  "hr_avg_bpm":rounded(mean([p.hr for p in points])),
                  "hr_max_bpm":rounded(maximum([p.hr for p in points]),0),
@@ -645,7 +645,7 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
         "recoveries_between_runs":recoveries,
         "cooldown_first5min_after_running":cool,
         "lap_metadata": [{"number":l["number"],"start_local":iso(l["start"],tz),
-                          "duration_s":rounded(l["seconds"],1),"garmin_distance_m":rounded(l["garmin_m"],1),
+                          "duration_s":rounded(l["seconds"],1),"tcx_distance_m":rounded(l["tcx_m"],1),
                           "reported_hr_avg_bpm":l["avg_hr_reported"],"reported_hr_max_bpm":l["max_hr_reported"],
                           "reported_cadence_spm":rounded(2*l["avg_run_cadence_raw"],1) if l["avg_run_cadence_raw"] is not None else None} for l in laps],
         "quality":{"trackpoints_unique":len(points),"duplicate_boundary_timestamps":dups,
@@ -674,12 +674,12 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
                       "notes":None,"provenance":"not_available_in_tcx"},
         "interpretation_rules":[
             "This is a technical summary, not a medical assessment.",
-            "Garmin indoor distance/speed are estimates; treadmill reading overrides Garmin distance.",
+            "Indoor TCX distance/speed may be estimates; confirmed treadmill reading takes precedence.",
             "Do not infer injury, feelings or chest-strap connection from TCX alone.",
             "Check detected run boundaries and heuristic confidence against manual laps for unfamiliar workouts.",
             "Info-level diagnostic records are missing context, not necessarily quality defects.",
             "Compare HR across workouts with the same HR sensor and similar running conditions.",
-            "Elapsed, Garmin lap timer and inferred moving time are distinct and must not be conflated.",
+            "Elapsed, TCX lap timer and inferred moving time are distinct and must not be conflated.",
             "Outdoor GPS estimates are not independently verified; raw GPS coordinates are not exported."
         ]
     }

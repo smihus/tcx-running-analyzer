@@ -36,3 +36,7 @@ Ask selectively about meaningful missing details, such as physical sensations (i
 ## Failure behavior
 
 If the environment cannot run Python, access the files, or persist changes, do not claim to have updated the user's computer. Provide the user the patch/updated metadata file or the exact commands. Do not upload personal TCX/JSON/notes to public repos or remote endpoints.
+
+## Recording outdoor mode (v1.4.0)
+
+When the training location/mode matters and remains uncertain, ask whether the activity was on a treadmill or outdoors. Only on explicit confirmation record `{"activity_mode":"outdoor"}` or `{"activity_mode":"treadmill"}` using the existing metadata upsert and rebuild workflow. Do not infer user feelings, weather, or a real-world GPS route. A sparse trace without cadence is not evidence of walking.

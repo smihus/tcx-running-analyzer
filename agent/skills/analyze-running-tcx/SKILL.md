@@ -22,3 +22,7 @@ description: Receive one or more TCX files, execute Garmin TCX Running Analyzer,
 ## Output
 
 Provide a concise assessment in the user's language. Clearly distinguish Garmin/sensor data from user statements and uncertain inferences. Notes are private. Do not dump raw JSON. Honor a request for a written training manifest separately from structured metadata.
+
+## Outdoor interpretation (v1.4.0)
+
+Read `source.activity_mode`, `movement.inferred_activity`, `outdoor` and the pause-aware time fields before describing a GPS-based run. Describe running cadence and HR only when measurements exist. Use GPS distance/splits for whole-activity pace, not to claim exact running-only pace. Kilometer/mile lap distance should not be confused with run/walk changes. If `activity_mode=unknown` and the distinction matters, ask for user confirmation through `maintain-running-metadata`; otherwise leave it unknown. Never print GPS coordinates. When reporting history, heed canonical/duplicate status.

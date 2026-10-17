@@ -12,6 +12,8 @@ param(
     [ValidateSet('polar_h10', 'wrist_optical', 'other_chest', 'unknown')]
     [string]$HeartRateSource = 'unknown',
     [string]$UtcOffset = '+00:00',
+    [ValidateSet('auto', 'treadmill', 'outdoor', 'unknown')]
+    [string]$ActivityMode = 'auto',
     [string]$Metadata,
     [string]$ExpectedManifest,
     [ValidateRange(1, 36500)]
@@ -39,7 +41,8 @@ if ($Python) {
     $prefix = @()
 }
 $argsList = @('-m', 'garmin_tcx_running_analyzer', $Path, '--tz-offset', $UtcOffset, '--hr-source', $HeartRateSource,
-              '--run-cadence-threshold', $CadenceThreshold.ToString([cultureinfo]::InvariantCulture))
+              '--run-cadence-threshold', $CadenceThreshold.ToString([cultureinfo]::InvariantCulture),
+              '--activity-mode', $ActivityMode)
 if ($Output) { $argsList += @('--output', $Output) }
 if ($Recursive) { $argsList += '--recursive' }
 if ($null -ne $TreadmillKm) {

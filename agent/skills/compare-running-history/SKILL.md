@@ -19,3 +19,7 @@ Use for an archive JSON or multi-workout trend analysis. Primary input is **`run
 ## Output
 
 Concise in the user's language, with changes grounded in named dates and recorded values. If the user keeps a separate Markdown training manifest, preserve its prior history and update it only when asked. Do not publish private TCX, JSON or athlete notes.
+
+## Outdoor comparisons (v1.4.0)
+
+First drop `source.identity_status=duplicate_export` from trend calculations; inspect `summary.activity_id_conflicts` before trusting totals. Separate treadmill-confirmed speed and outdoor device-distance/active-pace estimates; consider elevation and walk breaks, and never infer improvement from comparing unlike running surfaces or a paused GPS activity with a continuous treadmill workout. Inspect `movement.inferred_activity` and `total.running_moving_duration_s`; the `timer_duration_s` is not necessarily identical to actual moving time. See `docs/OUTDOOR_RUNNING.md`.

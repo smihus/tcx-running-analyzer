@@ -24,3 +24,7 @@ For implementation commands and workspace conventions read `docs/AGENT_WORKFLOW.
 - A plain chat without file-system/process permissions **cannot** automatically change a local Windows directory; produce user-downloadable outputs or ask to use an authorized execution environment instead, without claiming work was done.
 
 **Deployment:** Leaving this file under `agent/` does not guarantee auto-discovery. See `agent/README.md` for opt-in loading by different agents.
+
+## Outdoor mode (v1.4.0)
+
+When GPS is available, the analyzer produces privacy-safe outdoor time/pace/elevation and pause estimates; review `docs/OUTDOOR_RUNNING.md`, agent rules and duplicate labels before interpreting. Preserve the separation of user-confirmed treadmill values vs device-estimated outdoor distance. Never publish GPS coordinates or third-party traces.

@@ -171,7 +171,7 @@ def read_metadata(path: Path | None) -> dict:
     for name, meta in doc["files"].items():
         if not isinstance(name, str) or not isinstance(meta, dict):
             raise ValueError('metadata "files" must map filenames to objects')
-        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows", "identity"}
+        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows", "identity", "activity_mode"}
         if unknown:
             raise ValueError(f"unknown metadata properties for {name}: {sorted(unknown)}")
         for key in ("treadmill_km", "run_speed_kmh"):
@@ -181,6 +181,8 @@ def read_metadata(path: Path | None) -> dict:
         if 'run_windows' in meta:
             try: meta['run_windows'] = metadata_windows(meta['run_windows'])
             except ValueError as exc: raise ValueError(f'{name}.run_windows: {exc}') from exc
+        if 'activity_mode' in meta and meta['activity_mode'] not in ('auto','treadmill','outdoor','unknown'):
+            raise ValueError(f'unknown activity_mode in metadata for {name}')
         if "hr_source" in meta and meta["hr_source"] not in SENSORS:
             raise ValueError(f"unknown hr_source in metadata for {name}")
         if "identity" in meta:
@@ -211,7 +213,63 @@ def apply_subjective(report: dict, values: dict):
         report["subjective"]["provenance"] = "user_supplied_metadata"
 
 
-def batch_summary(activities: list[dict], files_found: int, errors: list[dict]) -> dict:
+def resolve_activity_identities(activities: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
+    """Deduplicate likely re-exports; never drop a conflicting Garmin activity ID.
+
+    All file reports stay in `activities` with transparent provenance. Only
+    statistically equivalent IDs count once in aggregate exercise statistics.
+    """
+    groups = {}
+    for a in activities:
+        key = a['source']['activity_id']
+        groups.setdefault(key, []).append(a)
+    unique, duplicates, collisions = [], [], []
+    for activity_id, group in groups.items():
+        if len(group) == 1:
+            group[0]['source']['identity_status'] = 'unique'
+            unique.extend(group)
+            continue
+        baseline = group[0]['total']
+        sport = group[0]['source'].get('sport')
+        distance = baseline.get('garmin_distance_m')
+        duration = baseline.get('recorded_duration_s')
+        def equivalent(row):
+            dd = row['total'].get('garmin_distance_m')
+            dt = row['total'].get('recorded_duration_s')
+            return (row['source'].get('sport') == sport and
+                    distance is not None and dd is not None and
+                    duration is not None and dt is not None and
+                    abs(distance-dd) <= max(25, distance*0.002) and
+                    abs(duration-dt) <= max(10, duration*0.001))
+        if all(equivalent(row) for row in group):
+            # Prefer richer GPS and HR data, then sample count; lexical tie break.
+            representative = sorted(group, key=lambda a: (
+                -a['quality'].get('gps_points',0),
+                -(a['quality']['trackpoints_unique']-a['quality']['missing_hr_points']),
+                -a['quality']['trackpoints_unique'],
+                -len(a.get('lap_metadata',[])),
+                a['source']['filename']))[0]
+            unique.append(representative)
+            representative['source']['identity_status'] = 'canonical'
+            for row in group:
+                if row is representative: continue
+                row['source']['identity_status'] = 'duplicate_export'
+                row['source']['duplicate_of'] = representative['source']['filename']
+            duplicates.append({'activity_id':activity_id,
+                               'canonical_file':representative['source']['filename'],
+                               'duplicate_files':[r['source']['filename'] for r in group if r is not representative],
+                               'reason':'matching_Garmin_ID_distance_and_elapsed_time'})
+        else:
+            # Never silently merge diverging exports sharing an ID.
+            unique.extend(group)
+            collisions.append({'activity_id':activity_id,
+                               'files':[r['source']['filename'] for r in group],
+                               'reason':'same_ID_but_distance_or_duration_differs'})
+            for row in group: row['source']['identity_status'] = 'id_conflict'
+    return unique, duplicates, collisions
+
+
+def batch_summary(activities: list[dict], files_found: int, errors: list[dict], raw_count: int | None = None) -> dict:
     dated = sorted(activities, key=lambda r: (r["datetime"]["start_utc"] or "", r["source"]["filename"]))
     duration = sum(r["total"]["run_duration_s"] or 0 for r in activities)
     hr_vals = [(r["total"]["run_hr_avg_bpm"], r["total"]["run_duration_s"])
@@ -222,7 +280,10 @@ def batch_summary(activities: list[dict], files_found: int, errors: list[dict]) 
         return round(sum(v*w for v,w in values)/sum(w for v,w in values), 1) if values else None
     hr_sources = Counter(r["source"]["hr_sensor"]["value"] for r in activities)
     return {
-        "files_found":files_found, "activities_succeeded":len(activities), "activities_failed":len(errors),
+        "files_found":files_found,
+        "activities_succeeded":raw_count if raw_count is not None else len(activities),
+        "activities_failed":len(errors),
+        "unique_activities_counted":len(activities),
         "activity_date_first_local":dated[0]["datetime"]["start_local"] if dated else None,
         "activity_date_last_local":dated[-1]["datetime"]["start_local"] if dated else None,
         "total_running_minutes":round(duration / 60, 2),
@@ -255,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--treadmill-km", type=positive_number, help="whole treadmill session distance; only for one file")
     ap.add_argument("--run-speed-kmh", type=positive_number, help="confirmed treadmill running speed; never inferred from Garmin")
     ap.add_argument("--hr-source", choices=SENSORS, default="unknown", help="manual sensor label, not detected from TCX")
+    ap.add_argument("--activity-mode", choices=('auto','treadmill','outdoor','unknown'), default='auto',
+                    help="training environment; auto uses treadmill input or GPS evidence")
     ap.add_argument("--metadata", type=Path, help="optional JSON file mapping filenames to per-workout overrides and feelings")
     ap.add_argument("--run-cadence-threshold", type=positive_number, default=145, help="cadence threshold, steps/min")
     ap.add_argument("--min-run-seconds", type=positive_number, default=45, help="shorter segments ignored")
@@ -307,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
                 km=m.get("treadmill_km",args.treadmill_km)
                 sensor=m.get("hr_source",args.hr_source)
                 file_windows=m.get('run_windows',windows)
-                report=summarize(f,args.tz_offset,sp,km,sensor,settings,file_windows)
+                report=summarize(f,args.tz_offset,sp,km,sensor,settings,file_windows,m.get('activity_mode',args.activity_mode))
                 identity=m.get('identity')
                 if identity and (identity['activity_id'] != report['source']['activity_id']
                                  or identity['sha256'] != report['source']['sha256']):
@@ -330,9 +393,15 @@ def main(argv: list[str] | None = None) -> int:
         if multi:
             batch_root=Path(args.inputs[0]).expanduser().resolve()
             if not batch_root.is_dir(): batch_root=batch_root.parent
-            summary=batch_summary(activities,len(files),errors)
+            unique, duplicate_groups, id_conflicts = resolve_activity_identities(activities)
+            summary=batch_summary(unique,len(files),errors,raw_count=len(activities))
+            summary['duplicate_activity_groups']=duplicate_groups
+            summary['duplicate_exports_excluded']=sum(len(g['duplicate_files']) for g in duplicate_groups)
+            summary['activity_id_conflicts']=id_conflicts
+            summary['activity_id_conflict_count']=len(id_conflicts)
+            summary['duplicate_policy']='Only Garmin IDs with agreeing distance and elapsed duration are merged for aggregate stats; all reports remain visible.' 
             summary['archive_completeness']=archive_completeness(files,batch_root,expected)
-            summary['observed_date_gaps']=date_gap_report(activities,args.date_gap_days)
+            summary['observed_date_gaps']=date_gap_report(unique,args.date_gap_days)
             summary['date_gap_note']='Observed gaps are not proof of missing workouts; planned rest periods are normal.'
             report={"schema_version":"1.0","report_type":"tcx_running_collection",
                     "generator":{"name":"garmin-tcx-running-analyzer","version":VERSION},

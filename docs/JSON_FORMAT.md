@@ -127,3 +127,22 @@ Agent-safe upsert may add an optional `identity` alongside supported per-file me
 The example identity above is **illustrative, not a real TCX match**; the update helper always copies exact identity fields from an actual analyzer report. During subsequent analyses a mismatch in either `activity_id` or SHA-256 prevents attaching metadata to a different file. Legacy metadata without identity remains accepted. The analyzer does not infer a sensor or symptoms from TCX. Missing `running-metadata.json` is normal before the user supplies any facts.
 
 Commands and error-handling guarantees: [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) and [`AGENT_WORKFLOW.ru.md`](AGENT_WORKFLOW.ru.md).
+
+
+## v1.4.0 — outdoor GPS, pause-aware duration and duplicate-aware collections
+
+Existing field names and schema_version `1.0` are retained. New per-activity fields:
+
+- `source.activity_mode = {value, provenance}`: `outdoor`, `treadmill`, `unknown`, based on GPS, explicit user settings, or unknown. The original Garmin `source.sport` remains separate.
+- `movement.inferred_activity = {value, confidence, reason, median_cadence_spm, median_device_speed_mps}`; `movement.segments[]` partitions running / likely walking / inferred stationary / unknown periods, with corresponding total walking/unknown duration fields; values `walking`, `running_or_mixed`, `unknown` are **heuristic**, not ground truth.
+- `total.elapsed_duration_s` / legacy `recorded_duration_s`: elapsed first-to-last trackpoint time; `total.timer_duration_s`: summed Garmin lap timer where complete; `total.timer_duration_provenance` identifies the source; `total.inferred_paused_duration_s` and `total.running_moving_duration_s` describe inferred outdoor no-motion gaps and running windows after these gaps are excluded. Outdoor legacy `total.run_duration_s` is now pause-adjusted.
+- `outdoor.mode`, `gps_points`, `gps_available`, `distance_source`, `distance_m`, `pace_active_sec_per_km`, `speed_active_kmh`, `elapsed_duration_s`, `active_estimated_duration_s`, `inferred_paused_duration_s`, `running_moving_duration_s`, `elevation`, `inferred_pauses[]`, `unobserved_gaps[]`, `kilometer_splits[]` and `mile_splits[]`. Split pace is whole-activity pace (including walking). GPS positions are **not** stored in JSON.
+- `quality.sampling_gap_policy` indicates outdoor adaptive vs legacy indoor threshold; `HR_DATA_MISSING` (info) means no HR, `HR_SOURCE_UNKNOWN` (info) means HR exists but sensor identity is unknown, `INFERRED_PAUSE` (info) and `UNOBSERVED_GAP` (warning) describe distinct sparse-recording cases.
+
+Collection additions:
+
+- `source.identity_status` per file: `unique`, `canonical`, `duplicate_export`, or `id_conflict`; duplicates include `source.duplicate_of`.
+- `summary.unique_activities_counted`, `summary.duplicate_activity_groups[]`, `summary.duplicate_exports_excluded`, `summary.activity_id_conflicts[]`, `summary.activity_id_conflict_count`.
+- `summary.activities_succeeded` still counts parsed **files**; weighted aggregates now use only unique/canonical activities (including all unresolved conflicts, which are explicitly flagged). Each duplicate report remains in `activities[]`.
+
+These GPS and pause inferences cannot replace physical ground truth; read [Outdoor Running and GPS](OUTDOOR_RUNNING.md) before using them for individual training decisions.

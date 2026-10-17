@@ -4,11 +4,15 @@
 
 [Документация на русском](README.ru.md) · [JSON format](docs/JSON_FORMAT.md) · [Optional AI agent instructions](agent/README.md) · [MIT License](LICENSE)
 
-Garmin TCX Running Analyzer extracts heart-rate, cadence, running intervals, recovery and distance data from exported Garmin TCX workouts. It is a **local, dependency-free Python 3.10+ CLI**. No cloud service, account or Garmin API required.
+Garmin TCX Running Analyzer extracts heart-rate, cadence, running intervals, recovery, distance, and **outdoor GPS-derived metrics** from exported Garmin TCX workouts. It is a **local, dependency-free Python 3.10+ CLI**. No cloud service, account or Garmin API required.
 
 **Folder mode produces exactly ONE combined JSON with all workouts and an archive summary.** Individual input files are not modified.
 
 ## Features
+
+- **Indoor treadmill and outdoor GPS running** in one analyzer: automatic/confirmed activity mode, whole-activity GPS pace, device-distance kilometer and mile splits, elevation and pause-aware time.
+- Detect equivalent re-exports of the same Garmin activity ID; keep every file report but avoid counting the same workout twice in archive totals. Conflicts are flagged, never silently merged.
+- Do not expose raw GPS coordinates in report JSON (privacy by default). See [Outdoor Running and GPS](docs/OUTDOOR_RUNNING.md) and [validation notes](docs/VALIDATION_v1.4.0.md).
 
 - Automatically detects running bouts: 5×7, 3×10, 2×15, 30-minute continuous runs and other lengths, using cadence and Garmin lap hints.
 - Heart-rate averages/peaks, first vs. second half, five-minute splits, last 30 seconds and post-run recovery.
@@ -22,7 +26,7 @@ Garmin TCX Running Analyzer extracts heart-rate, cadence, running intervals, rec
 - Windows PowerShell launcher, installable Python command and optional AI agent skills.
 - **Standard library only at runtime**. Unit tests use Python `unittest`.
 
-## AI-assisted running history (opt-in, v1.3.0)
+## AI-assisted running history (opt-in, v1.3.0+)
 
 **Recommended workflow:** the athlete sends one or more TCX files; an agent with permission to execute local programs imports the files, runs the analyzer automatically, reads the technical results, asks selective questions about sensations/treadmill/sensor details, **saves confirmed answers**, and rebuilds a persistent enriched history. The user does **not** have to run the analyzer manually when working with an authorized local agent.
 
@@ -37,6 +41,18 @@ PowerShell, executed by the agent or by the user on Windows:
 ```
 
 `+04:00` is just an example and persists for this workspace after first import. `-Record` safely merges with existing entries then rebuilds `running-history.json`. To rebuild without updating metadata use `-Rebuild`. For commands, caveats, Python equivalents and agent permissions see [Agent workflow](docs/AGENT_WORKFLOW.md) and [Russian version](docs/AGENT_WORKFLOW.ru.md). The optional skills are documented in [agent/README.md](agent/README.md). **A chat without local execution and file access cannot perform the workflow autonomously.**
+
+## Outdoor running quick start (v1.4.0)
+
+```powershell
+.\Analyze-Tcx.ps1 -Path 'D:\Running\OutdoorSamples' -ActivityMode auto -Output 'D:\Running\OutdoorSummary.json' -UtcOffset '+00:00'
+```
+
+`auto` detects GPS positions, while confirmed treadmill parameters take precedence. An unknown activity mode remains `unknown` rather than assuming treadmill. An athlete can confirm mode through private metadata. See [Outdoor Running and GPS](docs/OUTDOOR_RUNNING.md) and [upgrade notes](docs/UPGRADE_v1.4.0.md).
+
+For outdoor sessions, `total.elapsed_duration_s` (wall clock), `total.timer_duration_s` (sum of Garmin lap timers), `total.inferred_paused_duration_s` and `total.running_moving_duration_s` are distinct. Large no-distance-progress gaps are **inferred** pauses, not confirmed auto-pause events. Sparse regular GPS logging is not automatically a quality warning. Outdoor `total.run_duration_s` is pause-adjusted, so some historical outdoor figures differ from v1.3.0. `outdoor.pace_active_sec_per_km` includes the **whole** moving session, including walking; it is not running-only pace.
+
+Archive `summary.activities_succeeded` counts parsed files; `summary.unique_activities_counted` counts non-duplicate activities included in totals. All source records stay available.
 
 ## Quick start — Windows PowerShell (no installation)
 
@@ -83,6 +99,7 @@ Windows PowerShell users should use `Analyze-Tcx.ps1` above rather than POSIX `P
 | `--tz-offset +04:00` | UTC offset for display; default **+00:00** (UTC) |
 | `--run-speed-kmh 6` | **Confirmed** treadmill running speed, used only for expected distance |
 | `--treadmill-km 3.82` | **Whole treadmill session** distance; file mode only |
+| `--activity-mode auto` | Auto (`outdoor` by GPS, `treadmill` by user-entered parameters), or explicit `outdoor`, `treadmill`, `unknown` |
 | `--hr-source polar_h10` | Explicit sensor label, never inferred; default `unknown` |
 | `--metadata PATH.json` | Per-file treadmill speed/distance, HR source, subjective notes **and `run_windows`** |
 | `--expected-manifest PATH` | Optional expected TCX filenames (`.json` or line-delimited `.txt`) for coverage check, folder mode |
@@ -147,7 +164,7 @@ An AI assistant with local access can receive **TCX directly**, run the workflow
 
 Optional rules and skills live under [`agent/`](agent/README.md); compatible repository agents can discover the new root-level [`AGENTS.md`](AGENTS.md) and opt into the workflow. **Actual file/process permissions and skill discovery depend on the agent environment**; no ordinary chat automatically gains filesystem access. The user/agent may copy or explicitly load them if desired.
 
-See [Upgrade to v1.3.0](docs/UPGRADE_v1.3.0.md) for updating an existing Git clone.
+See [Upgrade to v1.4.0](docs/UPGRADE_v1.4.0.md) for updating an existing Git clone.
 
 ## Test
 

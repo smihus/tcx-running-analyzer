@@ -32,10 +32,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          .\Analyze-Tcx.ps1 -Path .\tests\fixtures -Output .\launcher-report.json -ExpectedManifest .\tests\fixtures\expected.txt
+          .\Analyze-Tcx.ps1 -Path .\tests\fixtures -Output .\launcher-report.json -ExpectedManifest .\tests\fixtures\expected.txt -ActivityMode auto
           if (-not (Test-Path .\launcher-report.json)) { throw 'JSON missing' }
           $report = Get-Content .\launcher-report.json -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($report.summary.archive_completeness.status -ne 'complete') { throw 'Expected-files check failed' }
+          if ($report.summary.unique_activities_counted -ne 1) { throw 'v1.4.0 identity summary missing' }
 
       - name: Verify AI workflow PowerShell on Windows
         if: runner.os == 'Windows'

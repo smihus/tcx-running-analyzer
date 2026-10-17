@@ -52,3 +52,13 @@ When asked to maintain a log/manifest, update the existing file without rewritin
 - Save confirmed facts using the validated metadata upsert helper, which binds filenames to Garmin activity ID and SHA-256 and preserves existing records. Never treat `null` as user-confirmed absence; never overwrite older subjective information with an unsupported default.
 - Repeated TCX ingestion must be idempotent; never overwrite a conflicting original file, attach a prior person's notes to a changed activity, or silently resolve conflicts.
 - Do not commit personal TCX, notes or report JSON. These files are not automatically discoverable from a public repository. If the agent has no local execution/file permissions, explain that it cannot make the local update automatically.
+
+## Outdoor running / GPS (v1.4.0)
+
+- Before interpretation read `source.activity_mode`, `movement.inferred_activity` and `movement.segments[]`; they can be heuristic. Garmin `Sport=Running` does not prove the person ran. Only confirmed user metadata can establish what mode they intended.
+- Distinguish `total.elapsed_duration_s`, `timer_duration_s`, `inferred_paused_duration_s` and `running_moving_duration_s`. Detected outdoor stationary gaps are *inferred*, not proven auto-pause, and unobserved GPS gaps are not evidence of walking or stopping.
+- `outdoor.kilometer_splits`, `mile_splits`, `pace_active_sec_per_km` and `speed_active_kmh` describe **whole-activity** distance and active time; they can include walking. Do not compare directly with treadmill-confirmed running-only pace. Altitude gain/loss is an approximate 3m-deadband metric.
+- `summary.activities_succeeded` counts files, `summary.unique_activities_counted` counts deduplicated workouts. When comparing history, skip records marked `duplicate_export`, review `summary.activity_id_conflicts` and avoid double counting.
+- Only request mode confirmation if auto mode is `unknown`, plausibly wrong, or materially affects advice. User-selected `activity_mode` is stored via verified local metadata upsert; do not invent GPS facts.
+- Raw GPS coordinates must never be included in public reports or agent summaries by default. The analyzer's GPS points are used transiently.
+- No-HR sessions carry `HR_DATA_MISSING` rather than an unknown **sensor** warning.

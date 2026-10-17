@@ -17,7 +17,7 @@ import sys
 
 from .cli import read_metadata, metadata_windows, SENSORS
 
-FIELDS = {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows"}
+FIELDS = {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows", "activity_mode"}
 SUBJECTIVE = {"foot_pain", "foot_fatigue", "heel_pain", "calf_fatigue", "back_pain", "overall_fatigue", "notes"}
 
 
@@ -53,6 +53,8 @@ def validate_patch(patch: dict):
             x = patch[key]
             if isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) or x <= 0:
                 raise ValueError(f"{key} must be a positive finite number")
+    if "activity_mode" in patch and patch["activity_mode"] not in ("auto", "treadmill", "outdoor", "unknown"):
+        raise ValueError('activity_mode must be auto, treadmill, outdoor, or unknown')
     if "hr_source" in patch and patch["hr_source"] not in SENSORS:
         raise ValueError(f"hr_source must be one of {SENSORS}")
     if "run_windows" in patch:

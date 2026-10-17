@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 — 2026-10-17
+
+- Add per-activity `activity_mode` (`auto`, `outdoor`, `treadmill`, `unknown`). GPS presence can suggest outdoor; a user-supplied treadmill setting takes precedence. User confirmation via private metadata is supported.
+- Parse Garmin GPS position and altitude; calculate outdoor active-time pace/speed, conservative altitude gain/loss, and kilometer/mile distance splits. **Never export raw GPS coordinates**.
+- Distinguish elapsed time, Garmin lap-timer time, estimated paused time, probable walking and running-moving time. Split outdoor running bouts around inferred stationary gaps and long unobserved periods. Avoid counting per-mile/per-kilometer Garmin distance laps as continuous running, which could mask numerous walk breaks.
+- Replace indoor 2-second gap warnings with adaptive outdoor sampling diagnostics; classify sustained low-cadence walking, retain uncertain movement, and supply low-confidence speed-only running detection if cadence is absent.
+- Report missing HR samples as `HR_DATA_MISSING` instead of unknown sensor; preserve unknown sensor notices when HR exists.
+- Deduplicate equivalent TCX exports sharing a Garmin Activity ID for **aggregate statistics only**; retain all file reports and flag conflicting IDs instead of silently merging them.
+- Keep the existing v1.3.0 fields and indoor running calculations. Add synthetic regression tests and verify all 19 previously analyzed treadmill activities without metric regressions. Real third-party GPS tracks are used for local validation only, never committed as fixtures.
+- GPS split active time and inferred pauses are estimates, not confirmed auto-pause events or medically validated motion classification.
+
+
 ## 1.3.0 — 2026-10-17
 
 - Add an opt-in AI-first local workflow: user supplies TCX, agent executes analyzer, asks only relevant questions, stores explicit feedback and rebuilds a cumulative enriched history.

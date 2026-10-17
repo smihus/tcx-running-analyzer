@@ -21,7 +21,7 @@ Garmin-specific TCX XML namespace URIs and device-specific `RunCadence` parsing 
 4. Remove the old editable distribution with `py -3 -m pip uninstall garmin-tcx-running-analyzer` if it is installed.
 5. Run `py -3 -m pip install -e .` and `py -3 -m unittest discover -s tests -v`.
 6. Run `tcx-running-analyzer --help`, `py -3 -m tcx_running_analyzer --help`, plus both Windows launchers.
-7. Stage tracked changes with `git add -u`, then stage only new project files with `git add src/tcx_running_analyzer tests/test_branding.py docs/REBRANDING.md README_RENAME.txt`. Review `git diff --cached --stat`, commit, and push. Avoid staging unrelated untracked release scripts or personal files. Verify CI before publishing a `v1.4.0` tag.
+7. Stage tracked changes with `git add -u`, then stage only new project files with `git add src/tcx_running_analyzer tests/test_branding.py docs/REBRANDING.md README_RENAME.txt`. Review `git diff --cached --stat`, commit, and push. Avoid staging unrelated untracked release scripts or personal files. The rename was committed after the published `v1.4.0` tag. Do not move that tag; publish the completed rename as **`v1.4.1`** after CI succeeds.
 
 The old package, command, and JSON schema are intentionally **not** supported. To migrate reports, regenerate `running-activities.json` and `running-history.json` from original TCX. Keep private `running-metadata.json` (activity IDs and user-confirmed facts are unaffected).
 

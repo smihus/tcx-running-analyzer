@@ -190,6 +190,6 @@ Tests use synthetic TCX fixtures, and CI checks Windows and Linux. [`CONTRIBUTIN
 
 See [JSON_FORMAT.md](docs/JSON_FORMAT.md): `quality.hr_jump_episodes` summarizes consecutive abrupt HR changes while preserving raw `hr_abrupt_jumps`; `quality.unclassified_low_cadence_laps` suggests laps to verify when run detection finds none. Neither diagnoses an artifact nor guesses running below the cadence threshold.
 
-## Repository and JSON schema rename (v1.4.0)
+## Repository and JSON schema rename (v1.4.1)
 
-Project URL: https://github.com/smihus/tcx-running-analyzer. In this release the Python distribution, import module, command and vendor-neutral distance keys have new names; old Garmin-branded aliases are **not** provided. JSON `schema_version` is `2.0`. Regenerate computed reports from TCX and retain private verified metadata. See [v1.4.0 upgrade notes](docs/UPGRADE_v1.4.0.md).
+Project URL: https://github.com/smihus/tcx-running-analyzer. Version v1.4.0 introduced outdoor running; **v1.4.1** renames the Python distribution, import module, CLI and generic distance fields. Old Garmin-branded aliases are **not** provided. JSON `schema_version` becomes `2.0` in v1.4.1. Regenerate computed reports from TCX and retain private verified metadata. See [v1.4.1 upgrade notes](docs/UPGRADE_v1.4.1.md).

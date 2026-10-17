@@ -1,9 +1,9 @@
-# v1.4.0 validation record (2026-10-17)
+# Outdoor logic validation (v1.4.0) and renamed candidate testing (2026-10-17)
 
 This development snapshot was validated **locally in Linux/Python**, not yet by GitHub Actions or Windows PowerShell. Do not describe the public CI as green until the user's GitHub workflow completes.
 
 1. `python -m unittest discover -s tests -v`: **44 passed** (synthetic fixtures only, no real coordinates).
-2. Wheel built with `python -m pip wheel . --no-deps --no-build-isolation`: `tcx_running_analyzer-1.4.0-py3-none-any.whl` created successfully.
+2. During the subsequent rename candidate work (prior to tagging v1.4.1), a wheel was built successfully: `tcx_running_analyzer-1.4.0-py3-none-any.whl`. This artifact did **not** belong to the published v1.4.0 tag; the actual v1.4.0 distribution was Garmin-branded.
 3. **19 privately supplied treadmill TCX**: all 19 parsed; v1.4.0 vs v1.2.1 JSON comparison showed **0 differences** in previously verified per-activity running duration, running intervals/boundaries, mean/max running HR, cadence, and longest uninterrupted segment. Archive running time remains **488.84 minutes**. Private TCX and regression JSON **are not bundled**.
 4. Three third-party public TCX supplied separately for local testing:
    - `activity_10101108916.tcx`: 0 running segments; outdoor low-cadence walking classification; no false `RUN_SEGMENTS_NOT_FOUND` warning.
@@ -12,4 +12,4 @@ This development snapshot was validated **locally in Linux/Python**, not yet by 
 5. Historical **10-file v1.3.0 outdoor JSON** (not raw 10-file reprocessing) used to validate deduplication: 10 parsed exports, **9** aggregate-counted sessions, repeated TCX marathon counted once, corrected historical total **1025.29 minutes**. The remaining seven public raw TCX files have **not** been rerun locally in v1.4.0 at this time.
 6. Raw GPS latitude/longitude are never serialized to the generated JSON; test fixtures use fabricated positions, not private routes. All source TCX remain read-only.
 
-Remaining acceptance gate: run the full 10-file outdoor directory and the new PowerShell launcher on Windows; review any warnings and confirm six GitHub Actions matrix jobs before tagging a release. GPS-derived split times/elevation are estimates, not lab-validated ground truth.
+At the time of this historical local validation, the remaining gate was a complete 10-file outdoor run and Windows/CI validation. The user subsequently reported successful GitHub Actions for the rename commit; v1.4.1 requires its own CI run after the version bump. GPS-derived split times/elevation are estimates, not lab-validated ground truth.

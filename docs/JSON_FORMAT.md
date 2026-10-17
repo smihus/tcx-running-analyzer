@@ -1,4 +1,4 @@
-# JSON output format (schema v2.0, TCX Running Analyzer v1.4.0)
+# JSON output format (schema v2.0, TCX Running Analyzer v1.4.1)
 
 The script does **not** prescribe a specific training program. JSON contains measurements or technical calculations only.
 
@@ -30,7 +30,7 @@ Intervals contain seconds, local timestamps, average/max HR (bpm), cadence in **
 {
   "schema_version": "2.0",
   "report_type": "tcx_running_collection",
-  "generator": {"name": "tcx-running-analyzer", "version": "1.4.0"},
+  "generator": {"name": "tcx-running-analyzer", "version": "1.4.1"},
   "source": {"mode": "directory_or_multiple_files", "recursive": false, "source_label": "workouts"},
   "summary": {
     "files_found": 2,

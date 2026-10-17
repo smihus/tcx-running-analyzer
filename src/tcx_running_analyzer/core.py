@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 from .outdoor import (infer_mode, detect_pauses, split_runs_at_pauses,
                       classify_activity, outdoor_metrics, detect_speed_runs, movement_timeline)
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 NS = {
     "t": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
     "e": "http://www.garmin.com/xmlschemas/ActivityExtension/v2",

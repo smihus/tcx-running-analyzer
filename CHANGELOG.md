@@ -1,16 +1,22 @@
 # Changelog
 
+## 1.4.1 — 2026-10-17
+
+- Rename the project and GitHub repository to **TCX Running Analyzer** (`smihus/tcx-running-analyzer`). The project is not limited to Garmin devices.
+- Rename the Python distribution and CLI to `tcx-running-analyzer` and the Python import module to `tcx_running_analyzer`; the old Garmin-branded names are deliberately not supported.
+- Rename vendor-neutral JSON distance and provenance keys (`tcx_distance_m`, `distance_tcx_m`, `tcx_distance_error_pct`, `TCX_DistanceMeters`, `sum_tcx_lap_total_time`). Raise JSON `schema_version` to `2.0` due to breaking output-field changes. Regenerate computed JSON reports from original TCX files; preserve user-verified private metadata.
+- Update PowerShell launchers, GitHub Actions, tests, AI-agent rules and skills, documentation, examples and release tooling for the renamed package. Keep vendor-owned Garmin TCX namespaces and extension names intact for supported devices.
+- No changes to outdoor-running detection, movement metrics, pacing or indoor workout calculations since v1.4.0. 47 automated tests and the 19-workout indoor regression were validated during the rename; public release requires CI for the version-bump commit.
+
 ## 1.4.0 — 2026-10-17
 
-- Rename the project and repository to **TCX Running Analyzer** (`tcx-running-analyzer`). Use brand-neutral CLI/module names, JSON schema `2.0` and TCX-specific generic distance fields; no legacy aliases are included. Garmin-defined XML namespaces and running-cadence extensions remain supported.
-
 - Add per-activity `activity_mode` (`auto`, `outdoor`, `treadmill`, `unknown`). GPS presence can suggest outdoor; a user-supplied treadmill setting takes precedence. User confirmation via private metadata is supported.
-- Parse TCX GPS position and altitude; calculate outdoor active-time pace/speed, conservative altitude gain/loss, and kilometer/mile distance splits. **Never export raw GPS coordinates**.
-- Distinguish elapsed time, TCX lap-timer time, estimated paused time, probable walking and running-moving time. Split outdoor running bouts around inferred stationary gaps and long unobserved periods. Avoid counting per-mile/per-kilometer TCX distance laps as continuous running, which could mask numerous walk breaks.
+- Parse Garmin GPS position and altitude; calculate outdoor active-time pace/speed, conservative altitude gain/loss, and kilometer/mile distance splits. **Never export raw GPS coordinates**.
+- Distinguish elapsed time, Garmin lap-timer time, estimated paused time, probable walking and running-moving time. Split outdoor running bouts around inferred stationary gaps and long unobserved periods. Avoid counting per-mile/per-kilometer Garmin distance laps as continuous running, which could mask numerous walk breaks.
 - Replace indoor 2-second gap warnings with adaptive outdoor sampling diagnostics; classify sustained low-cadence walking, retain uncertain movement, and supply low-confidence speed-only running detection if cadence is absent.
 - Report missing HR samples as `HR_DATA_MISSING` instead of unknown sensor; preserve unknown sensor notices when HR exists.
-- Deduplicate equivalent TCX exports sharing a TCX activity ID for **aggregate statistics only**; retain all file reports and flag conflicting IDs instead of silently merging them.
-- Preserve all v1.3.0 indoor running calculations (some schema field names intentionally change). Add synthetic regression tests and verify all 19 previously analyzed treadmill activities without metric regressions. Real third-party GPS tracks are used for local validation only, never committed as fixtures.
+- Deduplicate equivalent TCX exports sharing a Garmin Activity ID for **aggregate statistics only**; retain all file reports and flag conflicting IDs instead of silently merging them.
+- Keep the existing v1.3.0 fields and indoor running calculations. Add synthetic regression tests and verify all 19 previously analyzed treadmill activities without metric regressions. Real third-party GPS tracks are used for local validation only, never committed as fixtures.
 - GPS split active time and inferred pauses are estimates, not confirmed auto-pause events or medically validated motion classification.
 
 

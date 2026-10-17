@@ -13,6 +13,9 @@ param(
     [string]$HeartRateSource = 'unknown',
     [string]$UtcOffset = '+00:00',
     [string]$Metadata,
+    [string]$ExpectedManifest,
+    [ValidateRange(1, 36500)]
+    [int]$DateGapDays = 7,
     [string]$RunWindows,
     [double]$CadenceThreshold = 145,
     [string]$Python
@@ -46,6 +49,8 @@ if ($null -ne $RunSpeedKmh) {
     $argsList += @('--run-speed-kmh', $RunSpeedKmh.Value.ToString([cultureinfo]::InvariantCulture))
 }
 if ($Metadata) { $argsList += @('--metadata', $Metadata) }
+if ($ExpectedManifest) { $argsList += @('--expected-manifest', $ExpectedManifest) }
+$argsList += @('--date-gap-days', $DateGapDays.ToString([cultureinfo]::InvariantCulture))
 if ($RunWindows) { $argsList += @('--run-windows', $RunWindows) }
 $previousPath = $env:PYTHONPATH
 try {

@@ -13,7 +13,8 @@
     },
     "sample-training-b.tcx": {
       "run_speed_kmh": 6.5,
-      "hr_source": "unknown"
+      "hr_source": "unknown",
+      "run_windows": "00:05:00-00:10:00,00:11:00-00:16:00"
     }
   }
 }

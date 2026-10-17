@@ -2,121 +2,167 @@
   "schema_version": "1.0",
   "generator": {
     "name": "run_tcx_analyzer",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "source": {
-    "filename": "synthetic-b.tcx.xml",
-    "sha256": "5ced58028eed67dc654b184e9080471103cdd6a0c8d83bf45635b467f02a6b13",
-    "activity_id": "2026-01-04T16:00:00Z",
+    "filename": "example-early.tcx",
+    "sha256": "558b7ef911d5a8170e057e8b87fdd42e07248ebce4e80e80af887fddcd8fcbad",
+    "activity_id": "2026-01-03T15:00:00Z",
     "sport": "Running",
     "hr_sensor": {
       "value": "unknown",
       "provenance": "not_present_in_tcx"
-    }
+    },
+    "relative_path": "example-early.tcx"
   },
   "datetime": {
-    "start_utc": "2026-01-04T16:00:00+00:00",
-    "start_local": "2026-01-04T20:00:00+04:00",
+    "start_utc": "2026-01-03T15:00:00+00:00",
+    "start_local": "2026-01-03T19:00:00+04:00",
     "local_day_type": "weekend",
     "utc_offset": "+0400",
     "timezone_note": "fixed offset supplied by user; TCX times are UTC"
   },
   "total": {
-    "recorded_duration_s": 1500.0,
-    "garmin_distance_m": 2333.3,
+    "recorded_duration_s": 1260.0,
+    "garmin_distance_m": 1916.7,
     "treadmill_distance_m": null,
-    "hr_avg_bpm": 109.6,
-    "hr_max_bpm": 120.0,
-    "run_duration_s": 900.0,
-    "run_count": 1,
-    "run_hr_avg_bpm": 120.0,
-    "run_hr_max_bpm": 120.0,
-    "run_cadence_avg_spm": 166.0,
-    "longest_continuous_run_s": 900.0
+    "hr_avg_bpm": 109.8,
+    "hr_max_bpm": 126.0,
+    "run_duration_s": 600.0,
+    "run_count": 2,
+    "run_hr_avg_bpm": 124.0,
+    "run_hr_max_bpm": 126.0,
+    "run_cadence_avg_spm": 167.0,
+    "longest_continuous_run_s": 300.0
   },
   "warmup_last5min_before_running": {
     "kind": "pre_run_5min",
-    "start_local": "2026-01-04T20:00:00+04:00",
+    "start_local": "2026-01-03T19:00:00+04:00",
     "duration_s": 300.0,
-    "start_hr_bpm": 90.0,
-    "end_hr_bpm": 90.0,
+    "start_hr_bpm": 95.0,
+    "end_hr_bpm": 95.0,
     "hr_drop_bpm": 0.0,
-    "hr_avg_bpm": 90.0,
+    "hr_avg_bpm": 95.0,
     "minute_avg_hr_bpm": [
-      90.0,
-      90.0,
-      90.0,
-      90.0,
-      90.0
+      95.0,
+      95.0,
+      95.0,
+      95.0,
+      95.0
     ]
   },
   "runs": [
     {
-      "start_local": "2026-01-04T20:05:00+04:00",
-      "end_local": "2026-01-04T20:20:00+04:00",
-      "duration_s": 900.0,
-      "hr_avg_bpm": 120.0,
-      "hr_max_bpm": 120.0,
+      "start_local": "2026-01-03T19:05:00+04:00",
+      "end_local": "2026-01-03T19:10:00+04:00",
+      "duration_s": 300.0,
+      "hr_avg_bpm": 122.0,
+      "hr_max_bpm": 122.0,
       "cadence_avg_spm": 166.0,
-      "distance_garmin_m": 1500.0,
-      "hr_last30s_avg_bpm": 120.0,
-      "hr_first30s_avg_bpm": 120.0,
-      "hr_first_half_avg_bpm": 120.0,
-      "hr_second_half_avg_bpm": 120.0,
+      "distance_garmin_m": 500.0,
+      "hr_last30s_avg_bpm": 122.0,
+      "hr_first30s_avg_bpm": 122.0,
+      "hr_first_half_avg_bpm": 122.0,
+      "hr_second_half_avg_bpm": 122.0,
       "cadence_first_half_spm": 166.0,
       "cadence_second_half_spm": 166.0,
       "five_minute_splits": [
         {
           "from_min": 0,
           "to_min": 5.0,
-          "hr_avg_bpm": 120.0,
-          "hr_max_bpm": 120.0,
-          "cadence_spm": 166.0
-        },
-        {
-          "from_min": 5,
-          "to_min": 10.0,
-          "hr_avg_bpm": 120.0,
-          "hr_max_bpm": 120.0,
-          "cadence_spm": 166.0
-        },
-        {
-          "from_min": 10,
-          "to_min": 15.0,
-          "hr_avg_bpm": 120.0,
-          "hr_max_bpm": 120.0,
+          "hr_avg_bpm": 122.0,
+          "hr_max_bpm": 122.0,
           "cadence_spm": 166.0
         }
       ],
-      "treadmill_expected_running_m": 1500.0,
+      "treadmill_expected_running_m": 500.0,
       "garmin_distance_error_pct": 0.0,
       "boundary_adjustment_s": {
         "start": 0.0,
         "end": 0.0
+      },
+      "detection": {
+        "confidence": "high",
+        "method": "auto_cadence_plus_manual_laps",
+        "reason": "Sustained running cadence with consistent Garmin lap boundaries",
+        "cadence_support_fraction": 1.0,
+        "running_lap_coverage_fraction": 1.0,
+        "boundary_shift_max_abs_s": 0.0
+      }
+    },
+    {
+      "start_local": "2026-01-03T19:11:00+04:00",
+      "end_local": "2026-01-03T19:16:00+04:00",
+      "duration_s": 300.0,
+      "hr_avg_bpm": 126.0,
+      "hr_max_bpm": 126.0,
+      "cadence_avg_spm": 168.0,
+      "distance_garmin_m": 500.0,
+      "hr_last30s_avg_bpm": 126.0,
+      "hr_first30s_avg_bpm": 126.0,
+      "hr_first_half_avg_bpm": 126.0,
+      "hr_second_half_avg_bpm": 126.0,
+      "cadence_first_half_spm": 168.0,
+      "cadence_second_half_spm": 168.0,
+      "five_minute_splits": [
+        {
+          "from_min": 0,
+          "to_min": 5.0,
+          "hr_avg_bpm": 126.0,
+          "hr_max_bpm": 126.0,
+          "cadence_spm": 168.0
+        }
+      ],
+      "treadmill_expected_running_m": 500.0,
+      "garmin_distance_error_pct": 0.0,
+      "boundary_adjustment_s": {
+        "start": 0.0,
+        "end": 0.0
+      },
+      "detection": {
+        "confidence": "high",
+        "method": "auto_cadence_plus_manual_laps",
+        "reason": "Sustained running cadence with consistent Garmin lap boundaries",
+        "cadence_support_fraction": 1.0,
+        "running_lap_coverage_fraction": 1.0,
+        "boundary_shift_max_abs_s": 0.0
       }
     }
   ],
-  "recoveries_between_runs": [],
+  "recoveries_between_runs": [
+    {
+      "kind": "between_runs",
+      "start_local": "2026-01-03T19:10:00+04:00",
+      "duration_s": 60.0,
+      "start_hr_bpm": 110.0,
+      "end_hr_bpm": 110.0,
+      "hr_drop_bpm": 0.0,
+      "hr_avg_bpm": 110.0,
+      "minute_avg_hr_bpm": [
+        110.0
+      ]
+    }
+  ],
   "cooldown_first5min_after_running": {
     "kind": "post_run_5min",
-    "start_local": "2026-01-04T20:20:00+04:00",
+    "start_local": "2026-01-03T19:16:00+04:00",
     "duration_s": 300.0,
-    "start_hr_bpm": 98.0,
-    "end_hr_bpm": 98.0,
+    "start_hr_bpm": 96.0,
+    "end_hr_bpm": 96.0,
     "hr_drop_bpm": 0.0,
-    "hr_avg_bpm": 98.0,
+    "hr_avg_bpm": 96.0,
     "minute_avg_hr_bpm": [
-      98.0,
-      98.0,
-      98.0,
-      98.0,
-      98.0
+      96.0,
+      96.0,
+      96.0,
+      96.0,
+      96.0
     ]
   },
   "lap_metadata": [
     {
       "number": 1,
-      "start_local": "2026-01-04T20:00:00+04:00",
+      "start_local": "2026-01-03T19:00:00+04:00",
       "duration_s": 300.0,
       "garmin_distance_m": 416.7,
       "reported_hr_avg_bpm": null,
@@ -125,37 +171,117 @@
     },
     {
       "number": 2,
-      "start_local": "2026-01-04T20:05:00+04:00",
-      "duration_s": 900.0,
-      "garmin_distance_m": 1500.0,
+      "start_local": "2026-01-03T19:05:00+04:00",
+      "duration_s": 300.0,
+      "garmin_distance_m": 500.0,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
       "reported_cadence_spm": 166.0
     },
     {
       "number": 3,
-      "start_local": "2026-01-04T20:20:00+04:00",
+      "start_local": "2026-01-03T19:10:00+04:00",
+      "duration_s": 60.0,
+      "garmin_distance_m": 83.3,
+      "reported_hr_avg_bpm": null,
+      "reported_hr_max_bpm": null,
+      "reported_cadence_spm": 100.0
+    },
+    {
+      "number": 4,
+      "start_local": "2026-01-03T19:11:00+04:00",
+      "duration_s": 300.0,
+      "garmin_distance_m": 500.0,
+      "reported_hr_avg_bpm": null,
+      "reported_hr_max_bpm": null,
+      "reported_cadence_spm": 168.0
+    },
+    {
+      "number": 5,
+      "start_local": "2026-01-03T19:16:00+04:00",
       "duration_s": 300.0,
       "garmin_distance_m": 416.7,
       "reported_hr_avg_bpm": null,
       "reported_hr_max_bpm": null,
-      "reported_cadence_spm": 100.0
+      "reported_cadence_spm": 102.0
     }
   ],
   "quality": {
-    "trackpoints_unique": 1501,
-    "duplicate_boundary_timestamps": 2,
+    "trackpoints_unique": 1261,
+    "duplicate_boundary_timestamps": 4,
     "missing_hr_points": 0,
     "median_sample_gap_s": 1.0,
     "max_sample_gap_s": 1.0,
     "max_1s_hr_change_bpm": 30.0,
     "run_detection": "auto_cadence_plus_manual_laps",
+    "run_detection_confidence": "high",
+    "confidence_note": "Heuristic evidence only, not a probability or guarantee of correct segmentation.",
     "cadence_threshold_spm": 145,
-    "lap_distance_sum_m": 2333.3,
+    "lap_distance_sum_m": 1916.7,
+    "hr_abrupt_jumps": [
+      {
+        "time_utc": "2026-01-03T15:05:00+00:00",
+        "time_local": "2026-01-03T19:05:00+04:00",
+        "phase": "running",
+        "run_index": 1,
+        "hr_previous_bpm": 95.0,
+        "hr_current_bpm": 122.0,
+        "delta_bpm": 27.0,
+        "absolute_delta_bpm": 27.0,
+        "sample_interval_s": 1
+      },
+      {
+        "time_utc": "2026-01-03T15:10:00+00:00",
+        "time_local": "2026-01-03T19:10:00+04:00",
+        "phase": "between_runs",
+        "run_index": null,
+        "hr_previous_bpm": 122.0,
+        "hr_current_bpm": 110.0,
+        "delta_bpm": -12.0,
+        "absolute_delta_bpm": 12.0,
+        "sample_interval_s": 1
+      },
+      {
+        "time_utc": "2026-01-03T15:11:00+00:00",
+        "time_local": "2026-01-03T19:11:00+04:00",
+        "phase": "running",
+        "run_index": 2,
+        "hr_previous_bpm": 110.0,
+        "hr_current_bpm": 126.0,
+        "delta_bpm": 16.0,
+        "absolute_delta_bpm": 16.0,
+        "sample_interval_s": 1
+      },
+      {
+        "time_utc": "2026-01-03T15:16:00+00:00",
+        "time_local": "2026-01-03T19:16:00+04:00",
+        "phase": "post_run_5min",
+        "run_index": null,
+        "hr_previous_bpm": 126.0,
+        "hr_current_bpm": 96.0,
+        "delta_bpm": -30.0,
+        "absolute_delta_bpm": 30.0,
+        "sample_interval_s": 1
+      }
+    ],
     "warnings": [
       "HR_ABRUPT_JUMP: review HR trace; this is not proof of a sensor artifact",
       "HR_SOURCE_UNKNOWN: TCX does not identify whether Polar H10 was connected"
-    ]
+    ],
+    "issues": [
+      {
+        "code": "HR_ABRUPT_JUMP",
+        "severity": "warning",
+        "description": "One-second heart-rate change warrants inspection, not automatic artifact classification."
+      },
+      {
+        "code": "HR_SOURCE_UNKNOWN",
+        "severity": "info",
+        "description": "TCX does not establish wrist vs chest HR sensor."
+      }
+    ],
+    "warning_count": 1,
+    "info_count": 1
   },
   "subjective": {
     "foot_pain": null,
@@ -171,7 +297,8 @@
     "This is a technical summary, not a medical assessment.",
     "Garmin indoor distance/speed are estimates; treadmill reading overrides Garmin distance.",
     "Do not infer injury, feelings or chest-strap connection from TCX alone.",
-    "Check detected run boundaries against manual laps for unfamiliar workouts.",
+    "Check detected run boundaries and heuristic confidence against manual laps for unfamiliar workouts.",
+    "Info-level diagnostic records are missing context, not necessarily quality defects.",
     "Compare HR across workouts with the same HR sensor and similar running conditions."
   ]
 }

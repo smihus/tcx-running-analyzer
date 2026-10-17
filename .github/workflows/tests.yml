@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install project
+        run: python -m pip install -e .
+      - name: Run stdlib tests
+        run: python -m unittest discover -s tests -v
+      - name: Verify installed CLI
+        run: garmin-tcx-running-analyzer --help
+      - name: Verify PowerShell launcher on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\Analyze-Tcx.ps1 -Path .\tests\fixtures --Output .\launcher-report.json
+          if (-not (Test-Path .\launcher-report.json)) { throw 'JSON missing' }

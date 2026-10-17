@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.running.json
+running-activities.json
+*.tcx
+*.tcx.xml
+*.fit
+.DS_Store
+.vscode/
+.idea/
+.env
+
+# Public synthetic test data
+!tests/fixtures/*.tcx
+!tests/fixtures/*.tcx.xml

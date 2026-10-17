@@ -1,0 +1,19 @@
+{
+  "files": {
+    "sample-training-a.tcx": {
+      "treadmill_km": 3.82,
+      "run_speed_kmh": 6.0,
+      "hr_source": "polar_h10",
+      "subjective": {
+        "foot_pain": false,
+        "foot_fatigue": "mild",
+        "overall_fatigue": "mild during the last five minutes",
+        "notes": "Example synthetic metadata; not a real workout"
+      }
+    },
+    "sample-training-b.tcx": {
+      "run_speed_kmh": 6.5,
+      "hr_source": "unknown"
+    }
+  }
+}

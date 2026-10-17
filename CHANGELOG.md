@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-10-17
+
+- Add an opt-in AI-first local workflow: user supplies TCX, agent executes analyzer, asks only relevant questions, stores explicit feedback and rebuilds a cumulative enriched history.
+- Add `workflow_cli` ingestion/rebuild and `Running-Workflow.ps1` for Python-free-package-install Windows use. Preserve original TCX, detect basename conflicts and avoid duplicate imports of the same file.
+- Add a safe `metadata_cli` patch/upsert preserving previous fields and linking personal notes to the original Garmin activity ID and TCX SHA-256. Reject identity mismatches and invalid updates before file replacement.
+- Store personal TCX and JSON under Git-ignored `local-data/` by default. Keep raw measurements and derived merged report separate from user-confirmed metadata.
+- Add `maintain-running-metadata` skill and update agent instructions, existing skills, bilingual docs, examples, synthetic tests and Windows CI smoke test.
+- Keep the original analyzer CLI and existing JSON fields backward-compatible.
+
 ## 1.2.1 — 2026-10-17
 
 - Add `quality.hr_jump_episodes` grouping adjacent, same-direction one-second HR changes; keep `hr_abrupt_jumps` intact. Episodes describe only rapid changes, **not how long HR stays high**.

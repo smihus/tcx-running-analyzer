@@ -1,0 +1,11 @@
+{
+  "treadmill_km": 3.82,
+  "run_speed_kmh": 6.0,
+  "hr_source": "polar_h10",
+  "subjective": {
+    "foot_pain": false,
+    "foot_fatigue": "mild",
+    "overall_fatigue": "noticed near the end",
+    "notes": "SYNTHETIC example only; user-confirmed data would go here"
+  }
+}

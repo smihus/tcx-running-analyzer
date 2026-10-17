@@ -171,7 +171,7 @@ def read_metadata(path: Path | None) -> dict:
     for name, meta in doc["files"].items():
         if not isinstance(name, str) or not isinstance(meta, dict):
             raise ValueError('metadata "files" must map filenames to objects')
-        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows"}
+        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows", "identity"}
         if unknown:
             raise ValueError(f"unknown metadata properties for {name}: {sorted(unknown)}")
         for key in ("treadmill_km", "run_speed_kmh"):
@@ -183,6 +183,15 @@ def read_metadata(path: Path | None) -> dict:
             except ValueError as exc: raise ValueError(f'{name}.run_windows: {exc}') from exc
         if "hr_source" in meta and meta["hr_source"] not in SENSORS:
             raise ValueError(f"unknown hr_source in metadata for {name}")
+        if "identity" in meta:
+            identity = meta["identity"]
+            if not isinstance(identity, dict) or set(identity) != {"activity_id", "sha256"}:
+                raise ValueError(f"{name}.identity requires activity_id and sha256")
+            if not isinstance(identity["activity_id"], str) or not identity["activity_id"]:
+                raise ValueError(f"{name}.identity.activity_id must be a nonempty string")
+            sha = identity["sha256"]
+            if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
+                raise ValueError(f"{name}.identity.sha256 must be a lowercase SHA-256 hex string")
         if "subjective" in meta:
             subj = meta["subjective"]
             if not isinstance(subj, dict):
@@ -299,6 +308,10 @@ def main(argv: list[str] | None = None) -> int:
                 sensor=m.get("hr_source",args.hr_source)
                 file_windows=m.get('run_windows',windows)
                 report=summarize(f,args.tz_offset,sp,km,sensor,settings,file_windows)
+                identity=m.get('identity')
+                if identity and (identity['activity_id'] != report['source']['activity_id']
+                                 or identity['sha256'] != report['source']['sha256']):
+                    raise ValueError(f"metadata identity mismatch: {f.name}; refusing to apply metadata for a different TCX")
                 if "subjective" in m:
                     apply_subjective(report,m["subjective"])
                 if multi:

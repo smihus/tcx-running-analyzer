@@ -22,6 +22,22 @@ Garmin TCX Running Analyzer extracts heart-rate, cadence, running intervals, rec
 - Windows PowerShell launcher, installable Python command and optional AI agent skills.
 - **Standard library only at runtime**. Unit tests use Python `unittest`.
 
+## AI-assisted running history (opt-in, v1.3.0)
+
+**Recommended workflow:** the athlete sends one or more TCX files; an agent with permission to execute local programs imports the files, runs the analyzer automatically, reads the technical results, asks selective questions about sensations/treadmill/sensor details, **saves confirmed answers**, and rebuilds a persistent enriched history. The user does **not** have to run the analyzer manually when working with an authorized local agent.
+
+Private files in the chosen workspace: `tcx/` (originals), `running-activities.json` (computed from TCX), `running-metadata.json` (user-confirmed answers only), and `running-history.json` (merged archive). The metadata file is **never inferred** from TCX or published. The default `local-data/` folder is excluded from Git.
+
+PowerShell, executed by the agent or by the user on Windows:
+
+```powershell
+.\Running-Workflow.ps1 -Ingest -Workspace '.\local-data' -UtcOffset '+04:00' -Paths 'D:\Running\new.tcx'
+# After obtaining explicit answers, create a small JSON patch of only those values:
+.\Running-Workflow.ps1 -Record -Workspace '.\local-data' -File 'new.tcx' -Patch '.\local-data\confirmed-feedback.json'
+```
+
+`+04:00` is just an example and persists for this workspace after first import. `-Record` safely merges with existing entries then rebuilds `running-history.json`. To rebuild without updating metadata use `-Rebuild`. For commands, caveats, Python equivalents and agent permissions see [Agent workflow](docs/AGENT_WORKFLOW.md) and [Russian version](docs/AGENT_WORKFLOW.ru.md). The optional skills are documented in [agent/README.md](agent/README.md). **A chat without local execution and file access cannot perform the workflow autonomously.**
+
 ## Quick start — Windows PowerShell (no installation)
 
 Download/unzip the repository, install Python **3.10+**, open PowerShell in the project root:
@@ -127,11 +143,11 @@ See [JSON_FORMAT.md](docs/JSON_FORMAT.md). Synthetic examples are provided in [`
 
 ## Using the report with AI (optional)
 
-An AI assistant can work from the JSON alone for routine analysis and comparisons, without parsing TCX every time. Send the generated JSON and **your own subjective sensations**. If `quality.warnings` indicate uncertain segmentation, inspect the original TCX instead of trusting the report blindly.
+An AI assistant with local access can receive **TCX directly**, run the workflow and ask for subjective sensations; JSON-only analysis still works in an ordinary chat. If `quality.warnings` indicate uncertain segmentation, inspect the original TCX instead of trusting the report blindly.
 
-Optional prompt rules and skills are stored under [`agent/`](agent/README.md). These files are **not installed, enabled or auto-loaded** during ordinary tool use. The user/agent may copy or explicitly load them if desired.
+Optional rules and skills live under [`agent/`](agent/README.md); compatible repository agents can discover the new root-level [`AGENTS.md`](AGENTS.md) and opt into the workflow. **Actual file/process permissions and skill discovery depend on the agent environment**; no ordinary chat automatically gains filesystem access. The user/agent may copy or explicitly load them if desired.
 
-See [Upgrade from v1.1.0](docs/UPGRADE_v1.2.0.md) for updating an existing Git clone.
+See [Upgrade to v1.3.0](docs/UPGRADE_v1.3.0.md) for updating an existing Git clone.
 
 ## Test
 

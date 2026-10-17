@@ -1,32 +1,30 @@
-# Optional AI agent pack / Дополнительные правила и скилы
+# Optional AI-agent instructions / Дополнительные правила для ИИ
 
-This directory contains **optional**, human-readable instructions for an AI assistant analyzing output produced by **Garmin TCX Running Analyzer**. It is not imported by the Python tool and is not automatically applied to anyone's AI assistant. Nothing here is needed for normal TCX conversion.
+This folder is an **opt-in** workflow layer. The repository root now contains [`AGENTS.md`](../AGENTS.md) that directs compatible agents here only for opted-in workout tasks. The Python program works without any agent. The instructions **do not grant permissions to any chat**; file/process access depends on the AI environment.
 
-## Contents
+## Primary user workflow / Основной порядок работы
 
-- [`AGENTS.md`](AGENTS.md) — entry instructions for a repository-aware agent.
-- [`rules/analysis.md`](rules/analysis.md) — reliable interpretation and safety constraints; no invented treadmill speed or subjective feelings.
-- [`skills/analyze-running-tcx/SKILL.md`](skills/analyze-running-tcx/SKILL.md) — how to interpret one activity JSON and produce a short report.
-- [`skills/compare-running-history/SKILL.md`](skills/compare-running-history/SKILL.md) — how to compare multiple workouts in a collection JSON.
+1. User submits **one or several TCX files** (not a precomputed JSON).
+2. Agent runs `Running-Workflow.ps1 -Ingest` or Python workflow CLI, preserving TCX in a private archive, and reads analyzer-generated `running-activities.json`.
+3. Agent checks earlier confirmed facts and asks **only essential, unanswered** questions (sensations, treadmill readings, actual HR sensor).
+4. Agent updates cumulative `running-metadata.json` using the safe metadata merge command and rebuilds derived `running-history.json`.
+5. Agent analyzes the current session and comparable history using the enriched JSON. If no user facts are provided, unknown fields remain unknown.
 
-## Manual installation / Ручное подключение
+See [`docs/AGENT_WORKFLOW.ru.md`](../docs/AGENT_WORKFLOW.ru.md) or the [English instructions](../docs/AGENT_WORKFLOW.md) for exact PowerShell/Python examples, file layout and safeguards.
 
-The exact way to connect instructions differs between AI tools. Generic options:
+## Rules and skills
 
-1. **Explicit loading:** attach or paste `agent/rules/analysis.md` and the chosen `SKILL.md` in the agent conversation. This works independently of auto-discovery support.
-2. **Repository agent rules:** if your coding agent recognizes `AGENTS.md`, copy `agent/AGENTS.md` to your working repository's root *only if you want it active*; adapt paths to where the analyzer's output lives. Merely leaving it under `agent/` does **not** guarantee discovery.
-3. **Skill-aware agents:** copy each desired skill folder into the agent's documented skills discovery directory (for example `.agents/skills/<skill-name>/` where supported), or register that directory explicitly. There is no universal automatic discovery across every agent.
+- [`AGENTS.md`](AGENTS.md) — primary agent workflow and non-negotiable safeguards.
+- [`rules/analysis.md`](rules/analysis.md) — interpretation and training safety.
+- [`skills/analyze-running-tcx/SKILL.md`](skills/analyze-running-tcx/SKILL.md) — receive TCX, run analyzer, inspect its output.
+- [`skills/maintain-running-metadata/SKILL.md`](skills/maintain-running-metadata/SKILL.md) — ask selective questions, preserve previous answers, safely merge user metadata.
+- [`skills/compare-running-history/SKILL.md`](skills/compare-running-history/SKILL.md) — compare the cumulative enriched history.
 
-The `SKILL.md` files have YAML frontmatter with `name` and `description` to facilitate compatible skill loaders.
+## Connecting to an AI / Подключение
 
-**Важное:** правила интерпретации и скилы находятся отдельно от обычного приложения. Их можно не использовать; не копируйте их в корень репозитория, если не хотите включать агента. Не загружайте в публичный репозиторий личные TCX или отчёты с чувствительными данными.
+- **Explicit:** attach these files, or point the agent at them and instruct it to read them.
+- **Agents with AGENTS.md discovery:** copy/activate `agent/AGENTS.md` at the repository's recognized entry point, updating relative paths if needed. Simply leaving `agent/AGENTS.md` in this directory does **not** guarantee activation.
+- **Skill-aware agents:** register the actual skills directory as documented by the agent platform, or copy the individual `skills/<name>` folders into its discovery directory (for example `.agents/skills/` where supported).
+- **Plain chat:** without a connected local workspace and execution permissions it can draft outputs but **cannot automatically run Python or change your computer's files**.
 
-## Typical workflow / Порядок работы
-
-1. Generate `*.running.json` for a single TCX, or `running-activities.json` for a folder.
-2. Read `quality.issues` (`warning` vs `info`), `runs[].detection`, and `quality.hr_abrupt_jumps` before making conclusions; fall back to `quality.warnings` for older reports. Verify recognized `runs`. If uncertain, review the original TCX.
-3. If available, include user-entered treadmill distance/speed and subjective experience separately from automated metrics.
-4. Send JSON to your AI assistant together with the selected skill/rules.
-5. Ask for trends and practical training follow-ups, without treating HR metrics as clinical diagnosis.
-
-In collection JSON v1.2+, `summary.archive_completeness` only confirms expected filenames against the provided manifest; date gaps never prove missing workouts. Manual `run_windows` in metadata override the detector for the specified TCX and must be treated as user-supplied, not auto-verified.
+Personal training data is confidential and must stay out of the public repository. The sample patches/TCX in `examples/` and `tests/fixtures/` are **synthetic**.

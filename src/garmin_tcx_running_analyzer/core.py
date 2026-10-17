@@ -17,7 +17,7 @@ import statistics
 import sys
 import xml.etree.ElementTree as ET
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 NS = {
     "t": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
     "e": "http://www.garmin.com/xmlschemas/ActivityExtension/v2",

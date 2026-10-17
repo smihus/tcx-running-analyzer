@@ -24,3 +24,9 @@ running-activities.json
 # Public synthetic test data
 !tests/fixtures/*.tcx
 !tests/fixtures/*.tcx.xml
+
+# Private workspace maintained by the user/AI agent
+local-data/
+running-metadata.json
+running-history.json
+workflow-settings.json

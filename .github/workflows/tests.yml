@@ -36,3 +36,14 @@ jobs:
           if (-not (Test-Path .\launcher-report.json)) { throw 'JSON missing' }
           $report = Get-Content .\launcher-report.json -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($report.summary.archive_completeness.status -ne 'complete') { throw 'Expected-files check failed' }
+
+      - name: Verify AI workflow PowerShell on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\Running-Workflow.ps1 -Ingest -Workspace .\local-data -UtcOffset '+04:00' -Paths .\tests\fixtures\synthetic-smoke.tcx
+          if (-not (Test-Path .\local-data\running-history.json)) { throw 'History missing' }
+          .\Running-Workflow.ps1 -Record -Workspace .\local-data -File 'synthetic-smoke.tcx' -Patch .\examples\user-feedback.patch.example.json
+          $result = Get-Content .\local-data\running-history.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($result.activities[0].subjective.foot_pain -ne $false) { throw 'User feedback not merged' }
+          .\Running-Workflow.ps1 -Rebuild -Workspace .\local-data

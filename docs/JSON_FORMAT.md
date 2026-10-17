@@ -97,3 +97,33 @@ An expected-file manifest has the JSON form `{"expected_files":["subfolder/one.t
 ## Compatibility
 
 Single-file JSON preserves the original v1.0 keys. Collection JSON is a new container format in v1.1. New fields may be added in later backwards-compatible minor releases.
+
+
+## v1.3.0 private workflow and optional metadata identity
+
+A recommended agent workflow saves three JSON files under a **private** workspace:
+
+- `running-activities.json` — pure TCX/analyzer measurements (the original collection schema).
+- `running-metadata.json` — user-confirmed data (compatible existing `files` mapping).
+- `running-history.json` — re-generated collection JSON that merges explicit metadata into the original report format; no independent hand-edited measurement schema is introduced.
+
+Agent-safe upsert may add an optional `identity` alongside supported per-file metadata keys:
+
+```json
+{
+  "files": {
+    "synthetic-example.tcx": {
+      "identity": {
+        "activity_id": "2026-01-01T16:00:00.000Z",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "hr_source": "polar_h10",
+      "subjective": {"foot_pain": false}
+    }
+  }
+}
+```
+
+The example identity above is **illustrative, not a real TCX match**; the update helper always copies exact identity fields from an actual analyzer report. During subsequent analyses a mismatch in either `activity_id` or SHA-256 prevents attaching metadata to a different file. Legacy metadata without identity remains accepted. The analyzer does not infer a sensor or symptoms from TCX. Missing `running-metadata.json` is normal before the user supplies any facts.
+
+Commands and error-handling guarantees: [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) and [`AGENT_WORKFLOW.ru.md`](AGENT_WORKFLOW.ru.md).

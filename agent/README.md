@@ -24,7 +24,9 @@ The `SKILL.md` files have YAML frontmatter with `name` and `description` to faci
 ## Typical workflow / Порядок работы
 
 1. Generate `*.running.json` for a single TCX, or `running-activities.json` for a folder.
-2. Read `quality.warnings` and verify recognized `runs`. If uncertain, review the original TCX.
+2. Read `quality.issues` (`warning` vs `info`), `runs[].detection`, and `quality.hr_abrupt_jumps` before making conclusions; fall back to `quality.warnings` for older reports. Verify recognized `runs`. If uncertain, review the original TCX.
 3. If available, include user-entered treadmill distance/speed and subjective experience separately from automated metrics.
 4. Send JSON to your AI assistant together with the selected skill/rules.
 5. Ask for trends and practical training follow-ups, without treating HR metrics as clinical diagnosis.
+
+In collection JSON v1.2+, `summary.archive_completeness` only confirms expected filenames against the provided manifest; date gaps never prove missing workouts. Manual `run_windows` in metadata override the detector for the specified TCX and must be treated as user-supplied, not auto-verified.

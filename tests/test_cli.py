@@ -120,6 +120,94 @@ class CLITests(unittest.TestCase):
                 # argparse exits on invalid types
                 with self.assertRaises(SystemExit):self.call(f,'--run-speed-kmh',s)
 
+    def test_folder_manual_windows_per_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            d=Path(td)
+            synthetic_tcx(d/'one.tcx',pattern=[('walk',300,100,90),('walk',300,100,90)])
+            synthetic_tcx(d/'two.tcx')
+            metadata=d/'my-metadata.json'
+            metadata.write_text(json.dumps({'files':{'one.tcx':{
+                'run_windows':[{'start_s':300,'end_s':600}],
+                'run_speed_kmh':6
+            }}}),encoding='utf-8')
+            code,_,err=self.call(d,'--metadata',metadata)
+            self.assertEqual(code,0,err)
+            report=json.loads((d/'running-activities.json').read_text('utf-8'))
+            activities={a['source']['filename']:a for a in report['activities']}
+            self.assertEqual(activities['one.tcx']['total']['run_duration_s'],300)
+            self.assertEqual(activities['one.tcx']['quality']['run_detection'],'manual_windows')
+            self.assertEqual(activities['one.tcx']['quality']['run_detection_confidence'],'manual_override')
+            self.assertEqual(activities['two.tcx']['total']['run_count'],2)
+
+    def test_folder_manual_windows_string_and_invalid_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            d=Path(td);synthetic_tcx(d/'one.tcx')
+            metadata=d/'metadata.json'
+            metadata.write_text(json.dumps({'files':{'one.tcx':{
+                'run_windows':'00:05:00-00:10:00,00:11:00-00:16:00'
+            }}}),encoding='utf-8')
+            code,_,e=self.call(d,'--metadata',metadata)
+            self.assertEqual(code,0,e)
+            report=json.loads((d/'running-activities.json').read_text('utf-8'))
+            self.assertEqual(report['activities'][0]['total']['run_count'],2)
+            metadata.write_text(json.dumps({'files':{'one.tcx':{
+                'run_windows':[{'start_s':400,'end_s':300}]
+            }}}),encoding='utf-8')
+            code,_,e=self.call(d,'--metadata',metadata)
+            self.assertEqual(code,2)
+
+    def test_archive_expected_manifest_and_date_gaps(self):
+        with tempfile.TemporaryDirectory() as td:
+            d=Path(td)
+            synthetic_tcx(d/'first.tcx',start=datetime(2026,1,1,tzinfo=timezone.utc),
+                pattern=[('walk',300,100,100),('run',300,166,100),('walk',60,100,100),('run',300,168,100),('walk',300,102,100)])
+            synthetic_tcx(d/'second.tcx',start=datetime(2026,1,13,tzinfo=timezone.utc),
+                pattern=[('walk',300,100,100),('run',300,166,100),('walk',60,100,100),('run',300,168,100),('walk',300,102,100)])
+            manifest=d/'expected.json'
+            manifest.write_text(json.dumps({'expected_files':['first.tcx','not-there.tcx']}),encoding='utf-8')
+            code,_,e=self.call(d,'--expected-manifest',manifest,'--date-gap-days','7')
+            self.assertEqual(code,0,e)
+            report=json.loads((d/'running-activities.json').read_text('utf-8'))
+            completion=report['summary']['archive_completeness']
+            self.assertEqual(completion['status'],'missing_expected_files')
+            self.assertEqual(completion['missing_files'],['not-there.tcx'])
+            self.assertEqual(completion['unexpected_files'],['second.tcx'])
+            self.assertEqual(report['summary']['observed_date_gaps'][0]['days_between'],12)
+            self.assertEqual(report['summary']['activities_with_actionable_warnings'],0)
+            self.assertEqual(report['summary']['quality_issue_counts_by_code']['HR_SOURCE_UNKNOWN'],2)
+            manifest.write_text(json.dumps({'expected_files':['first.tcx','second.tcx']}),encoding='utf-8')
+            code,_,e=self.call(d,'--expected-manifest',manifest)
+            self.assertEqual(code,0,e)
+            report=json.loads((d/'running-activities.json').read_text('utf-8'))
+            self.assertEqual(report['summary']['archive_completeness']['status'],'complete')
+
+    def test_expected_manifest_txt_and_uncertain_default(self):
+        with tempfile.TemporaryDirectory() as td:
+            d=Path(td);synthetic_tcx(d/'one.tcx')
+            code,_,_=self.call(d)
+            self.assertEqual(code,0)
+            r=json.loads((d/'running-activities.json').read_text('utf-8'))
+            self.assertEqual(r['summary']['archive_completeness']['status'],'not_assessed')
+            manifest=d/'expected.txt'
+            manifest.write_text('# comment\none.tcx\n',encoding='utf-8')
+            code,_,e=self.call(d,'--expected-manifest',manifest)
+            self.assertEqual(code,0,e)
+            manifest.write_text('../bad.tcx',encoding='utf-8')
+            code,_,e=self.call(d,'--expected-manifest',manifest)
+            self.assertEqual(code,2)
+
+    def test_metadata_windows_outside_trace_partial_batch_failure(self):
+        with tempfile.TemporaryDirectory() as td:
+            d=Path(td);synthetic_tcx(d/'valid.tcx');synthetic_tcx(d/'invalid_bounds.tcx')
+            m=d/'meta.json';m.write_text(json.dumps({'files':{'invalid_bounds.tcx':{
+                'run_windows':[{'start_s':99999,'end_s':100000}]
+            }}}),encoding='utf-8')
+            code,_,_=self.call(d,'--metadata',m)
+            self.assertEqual(code,1)
+            report=json.loads((d/'running-activities.json').read_text('utf-8'))
+            self.assertEqual(report['summary']['activities_failed'],1)
+            self.assertEqual(report['summary']['activities_succeeded'],1)
+
     def test_duplicate_basename_metadata_is_error(self):
         with tempfile.TemporaryDirectory() as td:
             d=Path(td);synthetic_tcx(d/'a'/'same.tcx');synthetic_tcx(d/'b'/'same.tcx')

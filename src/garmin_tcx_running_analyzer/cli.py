@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, date
 import glob
 import json
 import math
@@ -83,6 +83,85 @@ def parse_run_windows(spec: str | None):
     return ranges
 
 
+
+def metadata_windows(value):
+    """Per-file windows as HH:MM:SS string or [{start_s,end_s}, ...]."""
+    if isinstance(value, str):
+        result = parse_run_windows(value)
+        if not result:
+            raise ValueError('run_windows cannot be empty')
+        return result
+    if not isinstance(value, list) or not value:
+        raise ValueError('run_windows must be a nonempty string or array of {start_s,end_s}')
+    result=[]
+    for entry in value:
+        if not isinstance(entry, dict) or set(entry) != {'start_s', 'end_s'}:
+            raise ValueError('run_windows entries must have exactly start_s and end_s')
+        a,b=entry['start_s'],entry['end_s']
+        for x in (a,b):
+            if isinstance(x,bool) or not isinstance(x,(int,float)) or not math.isfinite(x):
+                raise ValueError('run_windows boundaries must be finite seconds')
+        if a<0 or b<=a or (result and a<result[-1][1]):
+            raise ValueError('run_windows must be chronological, nonnegative and non-overlapping')
+        result.append((a,b))
+    return result
+
+
+def normalized_name(value: str) -> str:
+    """Manifest-relative POSIX path; do not allow absolute or traversal paths."""
+    if not isinstance(value,str) or not value.strip():
+        raise ValueError('expected filenames must be nonempty strings')
+    v=value.strip().replace('\\','/')
+    if v.startswith('/') or ':' in v or any(x in ('.','..','') for x in v.split('/')):
+        raise ValueError(f'invalid expected filename: {value!r}')
+    if not is_tcx(Path(v)):
+        raise ValueError(f'expected filename must end in .tcx or .tcx.xml: {v}')
+    return v
+
+
+def read_expected_manifest(path: Path | None) -> list[str] | None:
+    if path is None: return None
+    if path.suffix.lower()=='.json':
+        doc=json.loads(path.read_text(encoding='utf-8-sig'))
+        if not isinstance(doc,dict) or not isinstance(doc.get('expected_files'),list):
+            raise ValueError('expected manifest JSON must contain expected_files array')
+        names=doc['expected_files']
+    else:
+        names=[v.strip() for v in path.read_text(encoding='utf-8-sig').splitlines()
+               if v.strip() and not v.lstrip().startswith('#')]
+    result=[normalized_name(v) for v in names]
+    if not result:
+        raise ValueError('expected manifest contains no filenames')
+    if len(result)!=len(set(result)):
+        raise ValueError('expected manifest contains duplicate paths')
+    return result
+
+
+def date_gap_report(activities: list[dict], min_gap_days: int) -> list[dict]:
+    """Observed breaks between dates; never claims that a workout is missing."""
+    days=sorted({date.fromisoformat(r['datetime']['start_local'][:10]) for r in activities})
+    return [{'from_date':str(a),'to_date':str(b),'days_between':(b-a).days}
+            for a,b in zip(days,days[1:]) if (b-a).days >= min_gap_days]
+
+
+def archive_completeness(files: list[Path], root: Path, expected: list[str] | None) -> dict:
+    if expected is None:
+        return {'status':'not_assessed', 'expected_count':None, 'matched_count':None,
+                'missing_files':[], 'unexpected_files':[],
+                'note':'Without an expected-file manifest, finding every file in the folder does not prove the archive is complete.'}
+    actual=set()
+    for f in files:
+        try: actual.add(f.relative_to(root).as_posix())
+        except ValueError: actual.add(f.name)
+    expected_set=set(expected)
+    missing=sorted(expected_set-actual)
+    unexpected=sorted(actual-expected_set)
+    return {'status':'complete' if not missing else 'missing_expected_files',
+            'expected_count':len(expected_set),'matched_count':len(expected_set & actual),
+            'missing_files':missing,'unexpected_files':unexpected,
+            'note':'Manifest checks input coverage, not whether TCX was successfully parsed; see activities_failed.'}
+
+
 def read_metadata(path: Path | None) -> dict:
     if path is None:
         return {}
@@ -92,13 +171,16 @@ def read_metadata(path: Path | None) -> dict:
     for name, meta in doc["files"].items():
         if not isinstance(name, str) or not isinstance(meta, dict):
             raise ValueError('metadata "files" must map filenames to objects')
-        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective"}
+        unknown = set(meta) - {"treadmill_km", "run_speed_kmh", "hr_source", "subjective", "run_windows"}
         if unknown:
             raise ValueError(f"unknown metadata properties for {name}: {sorted(unknown)}")
         for key in ("treadmill_km", "run_speed_kmh"):
             if key in meta and (not isinstance(meta[key], (int, float)) or isinstance(meta[key], bool)
                                 or not math.isfinite(meta[key]) or meta[key] <= 0):
                 raise ValueError(f"{name}.{key} must be a positive number")
+        if 'run_windows' in meta:
+            try: meta['run_windows'] = metadata_windows(meta['run_windows'])
+            except ValueError as exc: raise ValueError(f'{name}.run_windows: {exc}') from exc
         if "hr_source" in meta and meta["hr_source"] not in SENSORS:
             raise ValueError(f"unknown hr_source in metadata for {name}")
         if "subjective" in meta:
@@ -142,6 +224,13 @@ def batch_summary(activities: list[dict], files_found: int, errors: list[dict]) 
         "running_hr_max_bpm":max((r["total"]["run_hr_max_bpm"] for r in activities if r["total"]["run_hr_max_bpm"] is not None), default=None),
         "activities_by_hr_source":dict(sorted(hr_sources.items())),
         "activities_with_quality_warnings":sum(bool(r["quality"]["warnings"]) for r in activities),
+        "activities_with_actionable_warnings":sum(r["quality"]["warning_count"]>0 for r in activities),
+        "quality_issue_counts_by_severity":dict(sorted(Counter(
+            issue['severity'] for r in activities for issue in r['quality']['issues']).items())),
+        "quality_issue_counts_by_code":dict(sorted(Counter(
+            issue['code'] for r in activities for issue in r['quality']['issues']).items())),
+        "run_detection_confidence_counts":dict(sorted(Counter(
+            r['quality']['run_detection_confidence'] for r in activities).items())),
         "notes":["Weighted averages are descriptive only; compare similar sessions and HR sensors.",
                  "A TCX collection does not measure pain, effort, treadmill calibration or confirmed speed."]
     }
@@ -161,9 +250,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run-cadence-threshold", type=positive_number, default=145, help="cadence threshold, steps/min")
     ap.add_argument("--min-run-seconds", type=positive_number, default=45, help="shorter segments ignored")
     ap.add_argument("--join-gap-seconds", type=nonnegative_number, default=12, help="max seconds to join adjacent run fragments")
-    ap.add_argument("--run-windows", help="manual run windows relative to activity start (one file only)")
+    ap.add_argument("--run-windows", help="manual run windows relative to activity start (one file only); batch uses metadata run_windows")
+    ap.add_argument('--expected-manifest', type=Path, help='optional .json or .txt expected TCX file list; archive coverage check')
+    ap.add_argument('--date-gap-days', type=int, default=7, help='report observed gaps of N+ days between workout dates (default 7)')
     args=ap.parse_args(argv)
     try:
+        if args.date_gap_days < 1:
+            raise ValueError('--date-gap-days must be an integer >= 1')
         files=find_files(args.inputs, args.recursive)
         if not files:
             raise ValueError("No .tcx or .tcx.xml files found")
@@ -174,6 +267,9 @@ def main(argv: list[str] | None = None) -> int:
         if multi and args.run_windows:
             raise ValueError("--run-windows applies to a single file only")
         metadata=read_metadata(args.metadata)
+        expected=read_expected_manifest(args.expected_manifest)
+        if expected is not None and not multi:
+            raise ValueError('--expected-manifest requires folder or multi-file mode')
         if len(set(f.name for f in files)) < len(files) and metadata:
             raise ValueError("duplicate basenames in the batch; --metadata requires unique filenames")
         windows=parse_run_windows(args.run_windows)
@@ -201,7 +297,8 @@ def main(argv: list[str] | None = None) -> int:
                 sp=m.get("run_speed_kmh",args.run_speed_kmh)
                 km=m.get("treadmill_km",args.treadmill_km)
                 sensor=m.get("hr_source",args.hr_source)
-                report=summarize(f,args.tz_offset,sp,km,sensor,settings,windows)
+                file_windows=m.get('run_windows',windows)
+                report=summarize(f,args.tz_offset,sp,km,sensor,settings,file_windows)
                 if "subjective" in m:
                     apply_subjective(report,m["subjective"])
                 if multi:
@@ -218,11 +315,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"ERROR {f.name}: {exc}",file=sys.stderr)
         activities.sort(key=lambda r: (r["datetime"]["start_utc"] or "",r["source"].get("relative_path",r["source"]["filename"])))
         if multi:
+            batch_root=Path(args.inputs[0]).expanduser().resolve()
+            if not batch_root.is_dir(): batch_root=batch_root.parent
+            summary=batch_summary(activities,len(files),errors)
+            summary['archive_completeness']=archive_completeness(files,batch_root,expected)
+            summary['observed_date_gaps']=date_gap_report(activities,args.date_gap_days)
+            summary['date_gap_note']='Observed gaps are not proof of missing workouts; planned rest periods are normal.'
             report={"schema_version":"1.0","report_type":"tcx_running_collection",
                     "generator":{"name":"garmin-tcx-running-analyzer","version":VERSION},
                     "source":{"mode":"directory_or_multiple_files","recursive":args.recursive,
                               "source_label":Path(args.inputs[0]).name},
-                    "summary":batch_summary(activities,len(files),errors),
+                    "summary":summary,
                     "activities":activities,"errors":errors}
         elif activities:
             report=activities[0]

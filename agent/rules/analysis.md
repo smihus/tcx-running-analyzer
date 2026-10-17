@@ -15,9 +15,11 @@
 
 ## Quality and comparison
 
-- Start with `quality.warnings`; evaluate `quality.run_detection`, `runs`, and `lap_metadata` for inconsistent boundaries. On suspicious data, request the TCX or a corrected manual run window.
+- Start with `quality.issues`: handle `warning` severity separately from `info`; `HR_SOURCE_UNKNOWN` is informational, not an error. Continue supporting legacy `quality.warnings` for pre-v1.2.0 reports. Evaluate `quality.run_detection`, `runs[].detection` and `lap_metadata` for inconsistent boundaries. `confidence` is a heuristic label, not probability; `manual_override` is a user assertion, not verified truth. On suspicious data, request the TCX or a corrected manual run window.
 - `five_minute_splits` are **inside each run**, not cumulative across separate bouts unless deliberately aligned.
 - Compare equivalent workloads where possible: running duration/pace, intervals/rests, time of day, HR sensor, training context. Higher HR one day does not establish a trend or time-of-day effect.
+- Read `quality.hr_abrupt_jumps` (if present): report exact time, signed bpm change, and workout phase; don't assume artifact or diagnose illness. If these fields are absent, use older `quality.warnings` cautiously.
+- Never infer missing archive workouts from `summary.observed_date_gaps`; verify `summary.archive_completeness.missing_files` only when an expected manifest was supplied. That check does not prove every file parsed successfully.
 - Avoid comparing an optical reading's isolated spike with a chest-strap trace as if identical measurement quality. Abrupt HR jumps are flags, not confirmed artifacts.
 - For collection reports, sort by `datetime.start_utc` (already sorted), read **all** `activities`, and describe session-to-session patterns. `summary` duration-weighted numbers are descriptive and can be skewed by mixed dates and protocols.
 - If collection `errors` is nonempty, explicitly note incomplete coverage; do not claim every workout was analyzed.
@@ -39,3 +41,5 @@
 5. Suggest conservative next steps and note unresolved limitations.
 
 When asked to maintain a log/manifest, update the existing file without rewriting history or replacing the owner's observations with inferred ones.
+
+- In v1.2.1+ `quality.hr_jump_episodes` groups adjacent abrupt HR changes; `hr_abrupt_jumps` preserves raw events. Neither is a diagnosis or automatic proof of artifact. `quality.unclassified_low_cadence_laps` is a manual-review hint, **not** a confirmed running block.

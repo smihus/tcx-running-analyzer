@@ -1,4 +1,4 @@
-# JSON output format (schema v1.0)
+# JSON output format (schema v1.0, additive fields in tool v1.2.1)
 
 The script does **not** prescribe a specific training program. JSON contains measurements or technical calculations only.
 
@@ -30,7 +30,7 @@ Intervals contain seconds, local timestamps, average/max HR (bpm), cadence in **
 {
   "schema_version": "1.0",
   "report_type": "tcx_running_collection",
-  "generator": {"name": "garmin-tcx-running-analyzer", "version": "1.1.0"},
+  "generator": {"name": "garmin-tcx-running-analyzer", "version": "1.2.0"},
   "source": {"mode": "directory_or_multiple_files", "recursive": false, "source_label": "workouts"},
   "summary": {
     "files_found": 2,
@@ -48,11 +48,41 @@ Intervals contain seconds, local timestamps, average/max HR (bpm), cadence in **
 
 The example above illustrates only the shape, not a full output. Each object inside `activities` actually holds the **complete single-file report**. `summary` contains period statistics; activities are sorted by UTC start time. If a file cannot be parsed, the collection includes its filename/error and exits nonzero, but preserves the successfully parsed activities.
 
+### New v1.2.0 quality fields (backward compatible)
+
+Existing JSON keys including `quality.warnings` and `summary.activities_with_quality_warnings` are retained. New fields are additive; `schema_version` remains `1.0`.
+
+- `quality.issues[]`: objects `{code, severity, description}` where severity is `warning` (something to verify) or `info` (missing context such as unknown HR sensor, or explanation of treadmill-distance provenance). Legacy `quality.warnings[]` remains unchanged for existing consumers, including informational items.
+- `quality.warning_count` and `quality.info_count`: separate severity counts.
+- `quality.hr_abrupt_jumps[]`: every >=12 bpm change between adjacent one-second HR samples; `time_utc`, `time_local`, signed `delta_bpm`, `absolute_delta_bpm`, `hr_previous_bpm`, `hr_current_bpm`, `phase` (`running`, `pre_run_5min`, `before_running`, `between_runs`, `post_run_5min`, `after_running`, or `unclassified`) and `run_index` (1-based when running). Flags are **not evidence of a sensor error or illness on their own**.
+- `runs[].detection`: `{confidence, method, reason, cadence_support_fraction, running_lap_coverage_fraction, boundary_shift_max_abs_s}`. Confidence is **heuristic** (`high`/`medium`/`low`) and is **not a probability**. For explicit overrides, confidence is `manual_override`; it means user-supplied, not verified. `quality.run_detection_confidence` is an aggregate category (`none` for no detected runs).
+- `summary.activities_with_actionable_warnings`, `quality_issue_counts_by_severity`, `quality_issue_counts_by_code`, `run_detection_confidence_counts`: quality aggregation excluding informational messages from actionable counts.
+- `summary.archive_completeness`: `status` is `not_assessed` without a manifest; with one, `complete` (no missing expected files) or `missing_expected_files`. Includes `expected_count`, `matched_count`, `missing_files`, `unexpected_files` and a note. Even `complete` checks only **filenames**, not successful parsing (check `activities_failed` separately).
+- `summary.observed_date_gaps[]`: calendar gaps of at least `--date-gap-days` days between **different recorded workout dates**. Gaps are observations, **not proof of missing training**.
+
+### New v1.2.1 additive diagnostics
+
+- `quality.hr_jump_episodes[]` groups adjacent (exactly consecutive seconds), same-direction threshold-crossing changes within the same workout phase. For each episode, `start_utc`/`start_local` denotes the **sample before** the first jump and `end_utc`/`end_local` denotes the last jumped-to sample; includes `direction`, `hr_start_bpm`, `hr_end_bpm`, `net_delta_bpm`, `duration_s` and `jump_samples`. **These are the seconds during which abrupt changes occurred**, *not* how long the pulse remained high. All original raw events remain in `quality.hr_abrupt_jumps`.
+- `quality.hr_jump_episode_count` counts these grouped events. A jump event is a measurement observation and not, by itself, evidence of a sensor fault or medical issue.
+- `quality.unclassified_low_cadence_laps[]` lists manual-lap review candidates when no running intervals were found and Garmin lap average cadence is between 110 spm (inclusive) and the configured running threshold (exclusive). These laps are **not** automatically counted as runs. E.g. a March workout with 128 spm and anomalous HR can be walking or mixed; validate from training notes or use manually verified `run_windows` metadata.
+
+### Metadata run windows and completeness manifests
+
+Per-file metadata may include `run_windows`, for example:
+
+```json
+{"files":{"unusual.tcx":{"run_windows":[{"start_s":300,"end_s":600}]}}}
+```
+
+An equivalent string value `"00:05:00-00:10:00"` is supported. Boundaries are **seconds after the Garmin activity start**, must be sorted and non-overlapping, and must lie within available trackpoints. The override applies only to that file. Metadata is keyed by unique basename in a recursive archive.
+
+An expected-file manifest has the JSON form `{"expected_files":["subfolder/one.tcx","two.tcx"]}`; alternatively use a UTF-8 `.txt` with one relative path per line and `#` comments. Comparison uses paths relative to the first scanned directory. A filename not present in the manifest is shown as `unexpected_files` and is still analyzed.
+
 ### Summary interpretation
 
 - `running_hr_avg_bpm_duration_weighted`: mean of **rounded** per-activity running HR averages weighted by running time; descriptive aggregate, **not** clinically meaningful on its own.
 - `activities_by_hr_source`: sources **supplied by users**, not auto-detected; do not mix different sensor types without noting this.
-- `activities_with_quality_warnings`: includes informational distance/sensor warnings. Read each `quality.warnings` item.
+- `activities_with_quality_warnings`: legacy count including informational messages; use new `activities_with_actionable_warnings` to see only actual warning-severity items.
 
 ## Missing and uncertain data
 

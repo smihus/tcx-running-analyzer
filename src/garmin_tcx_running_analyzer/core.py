@@ -17,7 +17,7 @@ import statistics
 import sys
 import xml.etree.ElementTree as ET
 
-VERSION = "1.1.0"
+VERSION = "1.2.1"
 NS = {
     "t": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
     "e": "http://www.garmin.com/xmlschemas/ActivityExtension/v2",
@@ -317,19 +317,185 @@ def recovery(points, a, b, tz, kind):
     }
 
 
+
+def run_detection_evidence(points, laps, start, end, method, start_shift=0, end_shift=0, threshold=145):
+    """Heuristic quality indicators, NOT statistical/medical confidence."""
+    ps = period(points, start, end)
+    valid = [p for p in ps if p.cadence is not None]
+    cadence_fraction = (sum(p.cadence >= threshold for p in valid) / len(valid)) if valid else None
+    span = (end - start).total_seconds()
+    overlap = 0.0
+    for lap in laps:
+        st, seconds, raw = lap['start'], lap['seconds'], lap['avg_run_cadence_raw']
+        if st is None or seconds is None or raw is None or raw * 2 < threshold:
+            continue
+        overlap += max(0.0, (min(end, st + timedelta(seconds=seconds)) - max(start, st)).total_seconds())
+    lap_coverage = min(1., overlap / span) if span > 0 else 0.
+    if method == 'manual_windows':
+        confidence = 'manual_override'
+        reason = 'User-provided interval boundaries; accuracy not independently verified'
+    elif cadence_fraction is None:
+        confidence = 'low'
+        reason = 'No cadence samples support classification'
+    elif cadence_fraction >= .85 and lap_coverage >= .8 and max(abs(start_shift), abs(end_shift)) <= 15:
+        confidence = 'high'
+        reason = 'Sustained running cadence with consistent Garmin lap boundaries'
+    elif cadence_fraction >= .7:
+        confidence = 'medium'
+        reason = 'Mostly supported by cadence, but lap evidence or transitions are weaker'
+    else:
+        confidence = 'low'
+        reason = 'Weak cadence agreement with classified running window'
+    return {
+        'confidence': confidence,
+        'method': method,
+        'reason': reason,
+        'cadence_support_fraction': rounded(cadence_fraction, 3),
+        'running_lap_coverage_fraction': rounded(lap_coverage, 3),
+        'boundary_shift_max_abs_s': rounded(max(abs(start_shift), abs(end_shift)), 1),
+    }
+
+
+def hr_jump_events(points, windows, tz, threshold=12):
+    """List abrupt 1-second changes with the observed phase; do not infer sensor artifact."""
+    if windows:
+        first_run, last_run = windows[0][0], windows[-1][1]
+    else:
+        first_run = last_run = None
+    events = []
+    for previous, current in zip(points, points[1:]):
+        if previous.hr is None or current.hr is None or (current.t - previous.t).total_seconds() != 1:
+            continue
+        change = current.hr - previous.hr
+        if abs(change) < threshold:
+            continue
+        if first_run is None:
+            phase = 'unclassified'
+            run_index = None
+        else:
+            run_index = next((i for i, (a, b, _, _) in enumerate(windows, 1) if a <= current.t < b), None)
+            if run_index is not None:
+                phase = 'running'
+            elif current.t < first_run:
+                phase = 'pre_run_5min' if current.t >= first_run - timedelta(minutes=5) else 'before_running'
+            elif current.t >= last_run:
+                phase = 'post_run_5min' if current.t < last_run + timedelta(minutes=5) else 'after_running'
+            else:
+                phase = 'between_runs'
+        events.append({
+            'time_utc': iso(current.t, timezone.utc), 'time_local': iso(current.t, tz),
+            'phase': phase, 'run_index': run_index,
+            'hr_previous_bpm': rounded(previous.hr, 0),
+            'hr_current_bpm': rounded(current.hr, 0),
+            'delta_bpm': rounded(change, 0), 'absolute_delta_bpm': rounded(abs(change), 0),
+            'sample_interval_s': 1,
+        })
+    return events
+
+
+def group_hr_jump_episodes(events):
+    """Group adjacent same-direction >=12-bpm changes into one episode.
+
+    Preserve `hr_abrupt_jumps` unchanged for backwards compatibility. Grouping
+    represents consecutive *measurement changes*, NOT the duration of raised HR.
+    Distinct phases, gaps or opposite directions always start a new episode.
+    """
+    grouped = []
+    for event in events:
+        t = parse_dt(event['time_utc'])
+        sign = 1 if event['delta_bpm'] > 0 else -1
+        if (grouped
+            and grouped[-1]['phase'] == event['phase']
+            and grouped[-1]['run_index'] == event['run_index']
+            and grouped[-1]['direction'] == ('rise' if sign > 0 else 'fall')
+            and (t - parse_dt(grouped[-1]['end_utc'])).total_seconds() == 1):
+            g = grouped[-1]
+            g['end_utc'] = event['time_utc']
+            g['end_local'] = event['time_local']
+            g['hr_end_bpm'] = event['hr_current_bpm']
+            g['net_delta_bpm'] = rounded(g['hr_end_bpm'] - g['hr_start_bpm'], 0)
+            g['jump_samples'] += 1
+            g['duration_s'] += 1
+        else:
+            start = t - timedelta(seconds=1)
+            local_t = datetime.fromisoformat(event['time_local'])
+            grouped.append({
+                'start_utc': iso(start, timezone.utc),
+                'end_utc': event['time_utc'],
+                'start_local': iso(local_t - timedelta(seconds=1), local_t.tzinfo),
+                'end_local': event['time_local'],
+                'phase': event['phase'],
+                'run_index': event['run_index'],
+                'direction': 'rise' if sign > 0 else 'fall',
+                'hr_start_bpm': event['hr_previous_bpm'],
+                'hr_end_bpm': event['hr_current_bpm'],
+                'net_delta_bpm': event['delta_bpm'],
+                'duration_s': 1,
+                'jump_samples': 1,
+            })
+    return grouped
+
+
+def ambiguous_low_cadence_laps(laps, tz, cadence_threshold, min_seconds):
+    """Surface review candidates, never silently classify low cadence as running."""
+    result = []
+    for lap in laps:
+        raw = lap['avg_run_cadence_raw']
+        duration = lap['seconds']
+        if (lap['start'] is not None and raw is not None and duration is not None
+            and duration >= min_seconds and 110 <= raw * 2 < cadence_threshold):
+            result.append({
+                'lap_number': lap['number'],
+                'start_local': iso(lap['start'], tz),
+                'duration_s': rounded(duration, 1),
+                'avg_cadence_spm': rounded(raw * 2),
+                'note': 'Below detection threshold; may be walking, running or mixed. Verify manually.',
+            })
+    return result
+
+
+ISSUE_DESCRIPTIONS = {
+    'RUN_SEGMENTS_NOT_FOUND': ('warning', 'No running bouts detected; check cadence and lap structure.'),
+    'TRACKPOINT_GAPS': ('warning', 'Trackpoints contain gaps longer than two seconds.'),
+    'HR_ABRUPT_JUMP': ('warning', 'One-second heart-rate change warrants inspection, not automatic artifact classification.'),
+    'LAP_DISTANCE_MISMATCH': ('warning', 'Sum of lap distances differs from cumulative recorded distance.'),
+    'LAP_DURATION_MISSING': ('warning', 'Lap duration is missing.'),
+    'HR_SOURCE_UNKNOWN': ('info', 'TCX does not establish wrist vs chest HR sensor.'),
+    'TREADMILL_DISTANCE': ('info', 'User-provided treadmill distance describes the whole treadmill session.'),
+}
+
+
+def issues_from_warnings(warnings):
+    result=[]
+    for message in warnings:
+        code = message.split(':', 1)[0]
+        severity, description = ISSUE_DESCRIPTIONS.get(code, ('warning','Unclassified diagnostic'))
+        result.append({'code':code, 'severity':severity, 'description':description})
+    return result
+
+
 def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_windows=None):
     activity_id,sport,points,laps,dups=load_tcx(file)
     first,last=points[0].t,points[-1].t
-    if manual_windows:
-        starts=[(first+timedelta(seconds=a),first+timedelta(seconds=b),0.0,0.0)
-                for a,b in manual_windows]
+    if manual_windows is not None:
+        starts=[]
+        for a,b in manual_windows:
+            ta, tb = first+timedelta(seconds=a), first+timedelta(seconds=b)
+            if ta < first or tb > last+timedelta(seconds=1) or tb <= ta:
+                raise ValueError(f'run window {a}-{b}s lies outside available TCX trackpoints')
+            starts.append((ta,tb,0.0,0.0))
     else:
         raw_runs=detect_runs(points,laps,**settings)
         starts=align_run_windows(points,raw_runs,laps)
     run_profiles=[]
+    run_method = 'manual_windows' if manual_windows is not None else 'auto_cadence_plus_manual_laps'
     for ta,tb,start_shift,end_shift in starts:
         p=profile(points,ta,tb,tz,speed_kmh)
+        if p is None:
+            raise ValueError('run window contains no TCX samples')
         p["boundary_adjustment_s"]={"start":start_shift,"end":end_shift}
+        p['detection'] = run_detection_evidence(
+            points,laps,ta,tb,run_method,start_shift,end_shift,threshold=settings['threshold'])
         run_profiles.append(p)
     run_seconds=sum(x["duration_s"] for x in run_profiles)
     run_hr=[]; run_cad=[]
@@ -355,10 +521,13 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
     hdiffs=[abs(b.hr-a.hr) for a,b in zip(points,points[1:]) if a.hr is not None and b.hr is not None and (b.t-a.t).total_seconds()==1]
     missing_hr=sum(p.hr is None for p in points)
     maxdelta=max(hdiffs) if hdiffs else None
+    jump_events=hr_jump_events(points,starts,tz)
+    jump_episodes=group_hr_jump_episodes(jump_events)
+    ambiguous_laps=ambiguous_low_cadence_laps(laps,tz,settings['threshold'],settings['min_seconds']) if not starts else []
     warnings=[]
     if not starts:
         warnings.append("RUN_SEGMENTS_NOT_FOUND: verify cadence data and manual laps")
-    if maxdelta is not None and maxdelta >= 12:
+    if jump_events:
         warnings.append("HR_ABRUPT_JUMP: review HR trace; this is not proof of a sensor artifact")
     if any(dt>2 for dt in dts):
         warnings.append("TRACKPOINT_GAPS: one or more gaps exceed 2 seconds")
@@ -370,6 +539,18 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
         warnings.append("HR_SOURCE_UNKNOWN: TCX does not identify whether Polar H10 was connected")
     if len(laps)>1 and any(l["seconds"] is None for l in laps):
         warnings.append("LAP_DURATION_MISSING")
+    issues=issues_from_warnings(warnings)
+    confidences=[r['detection']['confidence'] for r in run_profiles]
+    if not confidences:
+        overall_confidence='none'
+    elif 'low' in confidences:
+        overall_confidence='low'
+    elif 'medium' in confidences:
+        overall_confidence='medium'
+    elif 'manual_override' in confidences:
+        overall_confidence='manual_override'
+    else:
+        overall_confidence='high'
     source_bytes=file.read_bytes()
     out={
         "schema_version":"1.0", "generator":{"name":"run_tcx_analyzer","version":VERSION},
@@ -403,10 +584,19 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
                    "median_sample_gap_s":rounded(statistics.median(dts),1) if dts else None,
                    "max_sample_gap_s":rounded(max(dts),1) if dts else None,
                    "max_1s_hr_change_bpm":rounded(maxdelta,0),
-                   "run_detection":"manual_windows" if manual_windows else "auto_cadence_plus_manual_laps",
+                   "run_detection":run_method,
+                   "run_detection_confidence":overall_confidence,
+                   "confidence_note":"Heuristic evidence only, not a probability or guarantee of correct segmentation.",
                    "cadence_threshold_spm":settings["threshold"],
                    "lap_distance_sum_m":rounded(sum_laps,1),
-                   "warnings":warnings},
+                   "hr_abrupt_jumps":jump_events,
+                   "hr_jump_episodes":jump_episodes,
+                   "hr_jump_episode_count":len(jump_episodes),
+                   "unclassified_low_cadence_laps":ambiguous_laps,
+                   "warnings":warnings,
+                   "issues":issues,
+                   "warning_count":sum(i['severity']=='warning' for i in issues),
+                   "info_count":sum(i['severity']=='info' for i in issues)},
         "subjective":{"foot_pain":None,"foot_fatigue":None,"heel_pain":None,
                       "calf_fatigue":None,"back_pain":None,"overall_fatigue":None,
                       "notes":None,"provenance":"not_available_in_tcx"},
@@ -414,7 +604,8 @@ def summarize(file, tz, speed_kmh, treadmill_km, hr_source, settings, manual_win
             "This is a technical summary, not a medical assessment.",
             "Garmin indoor distance/speed are estimates; treadmill reading overrides Garmin distance.",
             "Do not infer injury, feelings or chest-strap connection from TCX alone.",
-            "Check detected run boundaries against manual laps for unfamiliar workouts.",
+            "Check detected run boundaries and heuristic confidence against manual laps for unfamiliar workouts.",
+            "Info-level diagnostic records are missing context, not necessarily quality defects.",
             "Compare HR across workouts with the same HR sensor and similar running conditions."
         ]
     }
